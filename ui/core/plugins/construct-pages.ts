@@ -153,21 +153,42 @@ export function constructPages(options: ConstructPagesOptions): Plugin {
 
   function generateRoutePath(relativePath: string, baseRoute: string): string {
     let routePath = relativePath
-      .replace(/\.[^.]+$/, '')
-      .replace(/\/index$/, '')
-      .replace(/\\/g, '/')
+      .replace(/\.[^.]+$/, '') // Remove file extension
+      .replace(/\/index$/, '') // Remove /index from the end
+      .replace(/\\/g, '/') // Normalize path separators
 
+    // Handle dynamic routes: [id].vue becomes :id, [slug]/edit.vue becomes :slug/edit
+    routePath = routePath.replace(/\[([^\]]+)\]/g, ':$1')
+
+    // Handle empty or index paths
     if (routePath === '' || routePath === 'index') {
-      routePath = '/'
-    } else if (!routePath.startsWith('/')) {
-      routePath = '/' + routePath
+      routePath = ''
     }
 
-    if (baseRoute && baseRoute !== '/') {
-      routePath = baseRoute + routePath
+    // Build full path
+    let fullPath = ''
+
+    if (baseRoute && baseRoute !== '') {
+      // If the route path already starts with the base route, don't duplicate it
+      if (routePath.startsWith(baseRoute + '/') || routePath === baseRoute) {
+        // Route path already includes base route, just add leading slash
+        fullPath = '/' + routePath
+      } else {
+        // Add base route to the path
+        const normalizedBase = baseRoute.startsWith('/') ? baseRoute : '/' + baseRoute
+        fullPath = routePath ? normalizedBase + '/' + routePath : normalizedBase
+      }
+    } else {
+      // No base route, just add leading slash to route path
+      fullPath = routePath ? '/' + routePath : '/'
     }
 
-    return routePath
+    // Ensure path always starts with /
+    if (!fullPath.startsWith('/')) {
+      fullPath = '/' + fullPath
+    }
+
+    return fullPath
   }
 
   function generateRouteName(routePath: string): string {
@@ -246,11 +267,25 @@ export function constructPages(options: ConstructPagesOptions): Plugin {
   }
 
   function generatePagesFile(): void {
-    const imports = pages.map((page, index) =>
+    // Remove duplicate routes (app pages take precedence over core pages)
+    const uniquePages = new Map<string, ConstructPage>()
+
+    // Process in reverse order so app pages (processed first) take precedence
+    for (const page of pages) {
+      if (!uniquePages.has(page.path)) {
+        uniquePages.set(page.path, page)
+      } else {
+        console.log(`⚠️  Route collision: ${page.path} - keeping first occurrence`)
+      }
+    }
+
+    const finalPages = Array.from(uniquePages.values())
+
+    const imports = finalPages.map((page, index) =>
       `const Page${index} = () => import('/${page.component}')`
     ).join('\n')
 
-    const routes = pages.map((page, index) => `  {
+    const routes = finalPages.map((page, index) => `  {
     path: '${page.path}',
     name: '${page.name}',
     component: Page${index},
@@ -276,7 +311,7 @@ export default routes
     try {
       mkdirSync(outputDir, { recursive: true })
       writeFileSync(outputPath, fileContent, 'utf-8')
-      console.log(`✅ Generated ${pages.length} routes in ${outputFile}`)
+      console.log(`✅ Generated ${finalPages.length} routes in ${outputFile} (${pages.length - finalPages.length} duplicates removed)`)
     } catch (error) {
       console.error('Failed to write pages file:', error)
     }

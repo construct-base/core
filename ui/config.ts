@@ -26,9 +26,9 @@ export default defineConfig({
       github: false
     },
     redirects: {
-      login: '/login',
+      login: '/auth/login',
       logout: '/',
-      register: '/register'
+      register: '/auth/register'
     }
   },
 

@@ -19,18 +19,18 @@
         </template>
 
         <UForm :state="form" :schema="schema" @submit="handleLogin" class="space-y-6">
-          <UFormGroup label="Username" name="username" required>
+          <UFormField label="Email" name="email" required>
             <UInput
-              v-model="form.username"
-              placeholder="Enter your username"
+              v-model="form.email"
+              placeholder="Enter your email"
               icon="i-heroicons-user"
               size="lg"
               color="primary"
               variant="outline"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Password" name="password" required>
+          <UFormField label="Password" name="password" required>
             <UInput
               v-model="form.password"
               type="password"
@@ -40,7 +40,7 @@
               color="primary"
               variant="outline"
             />
-          </UFormGroup>
+          </UFormField>
 
           <div class="flex items-center justify-between">
             <UCheckbox
@@ -50,7 +50,7 @@
             />
             <UButton
               variant="link"
-              to="/authentication/forgot-password"
+              to="/auth/forgot-password"
               class="text-sm"
               :padded="false"
             >
@@ -60,7 +60,7 @@
 
           <UAlert
             v-if="authStore.error"
-            color="red"
+            color="error"
             variant="soft"
             icon="i-heroicons-exclamation-triangle"
             :description="authStore.error"
@@ -74,7 +74,7 @@
             size="lg"
             color="primary"
             :loading="authStore.loading"
-            :disabled="!form.username || !form.password"
+            :disabled="!form.email || !form.password"
             icon="i-heroicons-arrow-right"
             trailing
           >
@@ -87,7 +87,7 @@
           <div class="text-center">
             <p class="text-sm text-slate-600 dark:text-slate-400">
               Don't have an account?
-              <UButton variant="link" to="/authentication/register" :padded="false" class="font-semibold">
+              <UButton variant="link" to="/auth/register" :padded="false" class="font-semibold">
                 Create one now
               </UButton>
             </p>
@@ -110,17 +110,19 @@
 
 <script setup lang="ts">
 import { z } from 'zod'
-import { useAuthStore } from '@core/stores/auth'
-
+ 
 // Page metadata
-layout({ use: 'auth', middleware: ['guest'] })
+layout({ 
+  "use": 'auth', 
+  "middleware": ['guest'] 
+})
 
 const authStore = useAuthStore()
 const router = useRouter()
 
 // Form state
 const form = reactive({
-  username: '',
+  email: '',
   password: ''
 })
 
@@ -128,14 +130,14 @@ const rememberMe = ref(false)
 
 // Validation schema
 const schema = z.object({
-  username: z.string().min(1, 'Username is required'),
+  email: z.string().min(1, 'Email is required'),
   password: z.string().min(1, 'Password is required')
 })
 
 // Handle login
 const handleLogin = async () => {
   const success = await authStore.login({
-    username: form.username,
+    email: form.email,
     password: form.password
   })
 

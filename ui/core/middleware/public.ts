@@ -1,15 +1,14 @@
 import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
 
 /**
- * Public middleware
- * Allows access to both authenticated and unauthenticated users
- * Used for pages like about, landing, etc.
+ * Public middleware - simple Vue Router guard
+ * Allows access to everyone (no authentication required)
  */
 export default function publicMiddleware(
   to: RouteLocationNormalized,
   from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
-  // Always allow access - no restrictions
+  // Public pages are accessible to everyone
   next()
 }

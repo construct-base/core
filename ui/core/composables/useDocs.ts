@@ -39,15 +39,14 @@ export function useDocs() {
       loading.value = true
       error.value = null
 
-      // This would ideally come from an API or build-time generation
-      // For now, we'll define the structure manually
+      // Updated documentation structure
       sections.value = [
         {
-          name: 'Getting Started',
+          name: '🚀 Getting Started',
           pages: [
-            { path: 'getting-started/introduction', title: 'Introduction', content: '' },
-            { path: 'getting-started/installation', title: 'Installation', content: '' },
-            { path: 'getting-started/quick-start', title: 'Quick Start', content: '' }
+            { path: 'getting-started/introduction', title: '📖 Introduction', content: '' },
+            { path: 'getting-started/installation', title: '⚡ Installation', content: '' },
+            { path: 'getting-started/quick-start', title: '🎯 Quick Start', content: '' }
           ]
         },
         {

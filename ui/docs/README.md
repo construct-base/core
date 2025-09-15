@@ -1,34 +1,37 @@
-# Construct Framework Documentation
+# 🏗️ Construct Framework Documentation
 
-Welcome to the Construct documentation! This is your comprehensive guide to building beautiful applications with the Construct framework.
+Welcome to the **Construct documentation**! Your comprehensive guide to building modern applications with the Construct framework - a Vue 3 + TypeScript framework inspired by Nuxt patterns.
 
-## Table of Contents
+---
 
-### 🚀 Getting Started
-- [Introduction](./getting-started/introduction.md) - What is Construct and why use it
-- [Installation](./getting-started/installation.md) - Setting up your development environment
-- [Quick Start](./getting-started/quick-start.md) - Build your first Construct application
+## 📚 Table of Contents
 
-### ⚙️ Configuration
-- [Overview](./configuration/overview.md) - Understanding the config system
-- [Environment Variables](./configuration/environment.md) - Managing different environments
-- [Build Options](./configuration/build.md) - Customizing the build process
+### 🚀 **Getting Started**
+- [📖 Introduction](./getting-started/introduction.md) - What is Construct and why use it
+- [⚡ Installation](./getting-started/installation.md) - Setting up your development environment
+- [🎯 Quick Start](./getting-started/quick-start.md) - Build your first Construct application
 
-### 🛡️ Middleware
-- [Overview](./middleware/overview.md) - Route protection and navigation guards
-- [Authentication](./middleware/auth.md) - Protecting authenticated routes
-- [Authorization](./middleware/authorization.md) - Role-based access control
+### ⚙️ **Configuration**
+- [🔧 Overview](./configuration/overview.md) - Understanding the config system
+- [🔄 Auto-Imports](./configuration/auto-imports.md) - Centralized import system
+- [🌍 Environment Variables](./configuration/environment.md) - Managing different environments
+- [📦 Build Options](./configuration/build.md) - Customizing the build process
 
-### 🧩 Components
-- [Core Components](./components/core.md) - Framework-provided components
-- [App Components](./components/app.md) - Application-specific components
-- [Creating Components](./components/creating.md) - Building reusable components
+### 🛡️ **Security & Middleware**
+- [🔐 Middleware Overview](./middleware/overview.md) - Simple localStorage-based route protection
+- [👤 Authentication](./middleware/auth.md) - Protecting authenticated routes
+- [🔑 Authorization](./middleware/authorization.md) - Role-based access control
 
-### 📝 Examples
-- [Authentication Flow](./examples/authentication.md) - Complete login/logout implementation
-- [CRUD Operations](./examples/crud.md) - Create, read, update, delete patterns
-- [File Upload](./examples/file-upload.md) - Handling file uploads
-- [Real-time Features](./examples/websocket.md) - WebSocket integration
+### 🧩 **Components**
+- [⭐ Core Components](./components/core.md) - Framework-provided components
+- [🎨 App Components](./components/app.md) - Application-specific components
+- [🔨 Creating Components](./components/creating.md) - Building reusable components
+
+### 📋 **Complete Examples**
+- [🔐 Authentication Flow](./examples/authentication.md) - Complete login/logout with Base API
+- [📊 CRUD Operations](./examples/crud.md) - Create, read, update, delete patterns
+- [📤 File Upload](./examples/file-upload.md) - Handling file uploads
+- [⚡ Real-time Features](./examples/websocket.md) - WebSocket integration
 
 ## Key Concepts
 

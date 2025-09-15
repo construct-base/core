@@ -1,7 +1,7 @@
 import type { RouteLocationNormalized, NavigationGuardNext } from 'vue-router'
 
 /**
- * Guest middleware
+ * Guest middleware - simple Vue Router guard
  * Redirects authenticated users away from guest-only pages (login, register)
  */
 export default function guestMiddleware(
@@ -9,16 +9,17 @@ export default function guestMiddleware(
   from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
-  const { isAuthenticated } = useAuth()
+  // Check localStorage for auth token
+  const token = localStorage.getItem('auth_token')
+  const user = localStorage.getItem('auth_user')
 
-  if (isAuthenticated.value) {
-    // Redirect authenticated users to dashboard or home
-    const redirectTo = localStorage.getItem('redirectTo') || '/dashboard'
+  if (token && user) {
+    // User is authenticated, redirect to dashboard or home
+    const redirectTo = localStorage.getItem('redirectTo') || '/'
     localStorage.removeItem('redirectTo')
-
-    next({ path: redirectTo })
-    return
+    next(redirectTo)
+  } else {
+    // User is not authenticated, allow access to guest pages
+    next()
   }
-
-  next()
 }

@@ -11,14 +11,14 @@
       <UCard class="mt-8">
         <UForm :state="form" :schema="schema" @submit="handleForgotPassword">
           <div class="space-y-4">
-            <UFormGroup label="Email" name="email" required>
+            <UFormField label="Email" name="email" required>
               <UInput
                 v-model="form.email"
                 type="email"
                 placeholder="Enter your email address"
                 icon="i-heroicons-envelope"
               />
-            </UFormGroup>
+            </UFormField>
 
             <UAlert
               v-if="error"
@@ -51,7 +51,7 @@
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
             Remember your password?
-            <UButton variant="link" to="/core/authentication/login" class="p-0">
+            <UButton variant="link" to="/auth/login" class="p-0">
               Back to Sign in
             </UButton>
           </p>

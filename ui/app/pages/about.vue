@@ -110,11 +110,9 @@
             Both components read from the same configuration, ensuring consistency across your stack.
           </p>
 
-          <UCodeBlock
-            :code="configExample"
-            language="typescript"
-            :header="false"
-          />
+          <UCard class="bg-slate-900 dark:bg-slate-800 mt-4">
+            <pre class="text-blue-400 text-sm font-mono overflow-x-auto"><code>{{ configExample }}</code></pre>
+          </UCard>
         </div>
       </UCard>
 
@@ -202,9 +200,11 @@
 </template>
 
 <script setup lang="ts">
+import { layout } from '@/core/utils/page-meta';
+
 // About page showcasing framework features - should be publicly accessible
 // Using default layout - automatically applies ['public'] middleware via convention
-layout({"use": "default"})
+layout({"use": "default", "middleware": ["public"]})
 
 const configExample = `// construct.config.ts
 export default defineConstructConfig({

@@ -23,8 +23,7 @@
           placeholder="Search users..."
           icon="i-heroicons-magnifying-glass"
           class="flex-1"
-          @input="debouncedSearch"
-        />
+         />
         <USelectMenu
           v-model="selectedRole"
           :options="roleOptions"
@@ -101,7 +100,7 @@
             <UButton
               variant="ghost"
               size="sm"
-              color="red"
+              color="error"
               icon="i-heroicons-trash"
               @click="confirmDelete(row)"
             />
@@ -142,7 +141,7 @@
               Cancel
             </UButton>
             <UButton
-              color="red"
+              color="error"
               :loading="usersStore.loading"
               @click="deleteUser"
             >
@@ -156,9 +155,7 @@
 </template>
 
 <script setup lang="ts">
-import { useUsersStore } from '@core/stores/users'
-import type { User } from '@core/types/user'
-
+ 
 // Page metadata - requires admin role
 layout({ use: 'default', middleware: ['auth', 'admin'] })
 
@@ -199,10 +196,7 @@ const refreshUsers = async () => {
     role: selectedRole.value
   })
 }
-
-const debouncedSearch = useDebounceFn(() => {
-  refreshUsers()
-}, 300)
+ 
 
 const onRoleFilter = () => {
   currentPage.value = 1

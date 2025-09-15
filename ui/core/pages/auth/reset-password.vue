@@ -11,23 +11,23 @@
       <UCard class="mt-8">
         <UForm :state="form" :schema="schema" @submit="handleResetPassword">
           <div class="space-y-4">
-            <UFormGroup label="New Password" name="password" required>
+            <UFormField label="New Password" name="password" required>
               <UInput
                 v-model="form.password"
                 type="password"
                 placeholder="Enter your new password"
                 icon="i-heroicons-lock-closed"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Confirm Password" name="confirmPassword" required>
+            <UFormField label="Confirm Password" name="confirmPassword" required>
               <UInput
                 v-model="form.confirmPassword"
                 type="password"
                 placeholder="Confirm your new password"
                 icon="i-heroicons-lock-closed"
               />
-            </UFormGroup>
+            </UFormField>
 
             <UAlert
               v-if="error"
@@ -59,7 +59,7 @@
 
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
-            <UButton variant="link" to="/core/authentication/login" class="p-0">
+            <UButton variant="link" to="/auth/login" class="p-0">
               Back to Sign in
             </UButton>
           </p>
@@ -130,7 +130,7 @@ const handleResetPassword = async () => {
 
     // Redirect to login after success
     setTimeout(() => {
-      router.push('/core/authentication/login')
+      router.push('/auth/login')
     }, 2000)
 
   } catch (err: any) {

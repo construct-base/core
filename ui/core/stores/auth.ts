@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { apiClient } from '@core/api/client'
-import type { User, LoginRequest, RegisterRequest } from '@core/types'
+import { apiClient } from '../api/client'
+import type { User, LoginRequest, LoginResponse } from '../types'
 
 export const useAuthStore = defineStore('auth', () => {
   // State
@@ -13,7 +13,7 @@ export const useAuthStore = defineStore('auth', () => {
   // Getters
   const isAuthenticated = computed(() => !!user.value && !!token.value)
   const isGuest = computed(() => !isAuthenticated.value)
-  const userRole = computed(() => user.value?.role_name || '')
+  const userRole = computed(() => user.value?.role?.name || '')
   const userId = computed(() => user.value?.id)
 
   // Actions
@@ -24,15 +24,23 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await apiClient.login(credentials)
 
-      if (response.success && response.data) {
-        user.value = response.data.user
-        token.value = response.data.token
-        apiClient.setToken(response.data.token)
-        return true
+      // Transform response to User type
+      user.value = {
+        id: response.id,
+        first_name: response.first_name,
+        last_name: response.last_name,
+        username: response.username,
+        phone: response.phone,
+        email: response.email,
+        role_id: response.role_id,
+        role: response.extend?.role || { id: response.role_id, name: response.role_name || 'User' },
+        avatar_url: response.avatar_url,
+        last_login: response.last_login
       }
 
-      error.value = response.message || 'Login failed'
-      return false
+      token.value = response.accessToken
+
+      return true
     } catch (err: any) {
       error.value = err.message || 'Login failed'
       return false
@@ -41,22 +49,30 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  const register = async (userData: RegisterRequest): Promise<boolean> => {
+  const register = async (userData: any): Promise<boolean> => {
     loading.value = true
     error.value = null
 
     try {
       const response = await apiClient.register(userData)
 
-      if (response.success && response.data) {
-        user.value = response.data.user
-        token.value = response.data.token
-        apiClient.setToken(response.data.token)
-        return true
+      // Transform response to User type
+      user.value = {
+        id: response.id,
+        first_name: response.first_name,
+        last_name: response.last_name,
+        username: response.username,
+        phone: response.phone,
+        email: response.email,
+        role_id: response.role_id,
+        role: response.extend?.role || { id: response.role_id, name: response.role_name || 'User' },
+        avatar_url: response.avatar_url,
+        last_login: response.last_login
       }
 
-      error.value = response.message || 'Registration failed'
-      return false
+      token.value = response.accessToken
+
+      return true
     } catch (err: any) {
       error.value = err.message || 'Registration failed'
       return false
@@ -76,6 +92,11 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       token.value = null
       apiClient.clearToken()
+
+      // Clear localStorage
+      localStorage.removeItem('auth_user')
+      localStorage.removeItem('auth_token')
+
       loading.value = false
     }
   }
@@ -87,10 +108,10 @@ export const useAuthStore = defineStore('auth', () => {
     error.value = null
 
     try {
-      const response = await apiClient.getCurrentUser()
+      const userData = await apiClient.getCurrentUser()
 
-      if (response.success && response.data) {
-        user.value = response.data
+      if (userData) {
+        user.value = userData
         return true
       } else {
         await logout()
@@ -98,9 +119,7 @@ export const useAuthStore = defineStore('auth', () => {
       }
     } catch (err: any) {
       error.value = err.message
-      if (err.status === 401) {
-        await logout()
-      }
+      await logout()
       return false
     } finally {
       loading.value = false
@@ -111,10 +130,22 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await apiClient.refreshToken()
 
-      if (response.success && response.data) {
-        user.value = response.data.user
-        token.value = response.data.token
-        apiClient.setToken(response.data.token)
+      if (response) {
+        // Transform response to User type
+        user.value = {
+          id: response.id,
+          first_name: response.first_name,
+          last_name: response.last_name,
+          username: response.username,
+          phone: response.phone,
+          email: response.email,
+          role_id: response.role_id,
+          role: response.extend?.role || { id: response.role_id, name: response.role_name || 'User' },
+          avatar_url: response.avatar_url,
+          last_login: response.last_login
+        }
+
+        token.value = response.accessToken
         return true
       }
 
@@ -126,11 +157,27 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const initAuth = async (): Promise<void> => {
-    const storedToken = apiClient.getToken()
+    // Try to restore from localStorage first
+    const storedToken = localStorage.getItem('auth_token')
+    const storedUser = localStorage.getItem('auth_user')
 
-    if (storedToken) {
-      token.value = storedToken
-      await getCurrentUser()
+    if (storedToken && storedUser) {
+      try {
+        token.value = storedToken
+        user.value = JSON.parse(storedUser)
+        apiClient.setToken(storedToken)
+
+        // Verify the token is still valid by fetching current user
+        await getCurrentUser()
+      } catch (err) {
+        console.warn('Failed to restore auth from localStorage:', err)
+        // Clear invalid data
+        localStorage.removeItem('auth_user')
+        localStorage.removeItem('auth_token')
+        user.value = null
+        token.value = null
+        apiClient.clearToken()
+      }
     }
   }
 

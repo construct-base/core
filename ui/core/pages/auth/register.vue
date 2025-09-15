@@ -11,55 +11,55 @@
       <UCard class="mt-8">
         <UForm :state="form" :schema="schema" @submit="handleRegister">
           <div class="space-y-4">
-            <UFormGroup label="First Name" name="first_name" required>
+            <UFormField label="First Name" name="first_name" required>
               <UInput
                 v-model="form.first_name"
                 placeholder="Enter your first name"
                 icon="i-heroicons-user"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Last Name" name="last_name" required>
+            <UFormField label="Last Name" name="last_name" required>
               <UInput
                 v-model="form.last_name"
                 placeholder="Enter your last name"
                 icon="i-heroicons-user"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Username" name="username" required>
+            <UFormField label="Username" name="username" required>
               <UInput
                 v-model="form.username"
                 placeholder="Choose a username"
                 icon="i-heroicons-at-symbol"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Email" name="email" required>
+            <UFormField label="Email" name="email" required>
               <UInput
                 v-model="form.email"
                 type="email"
                 placeholder="Enter your email"
                 icon="i-heroicons-envelope"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Phone" name="phone">
+            <UFormField label="Phone" name="phone">
               <UInput
                 v-model="form.phone"
                 placeholder="Enter your phone number"
                 icon="i-heroicons-phone"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Password" name="password" required>
+            <UFormField label="Password" name="password" required>
               <UInput
                 v-model="form.password"
                 type="password"
                 placeholder="Create a password"
                 icon="i-heroicons-lock-closed"
               />
-            </UFormGroup>
+            </UFormField>
 
             <UAlert
               v-if="authStore.error"
@@ -85,7 +85,7 @@
         <div class="mt-6 text-center">
           <p class="text-sm text-gray-600">
             Already have an account?
-            <UButton variant="link" to="/core/authentication/login" class="p-0">
+            <UButton variant="link" to="/auth/login" class="p-0">
               Sign in
             </UButton>
           </p>
@@ -97,7 +97,6 @@
 
 <script setup lang="ts">
 import { z } from 'zod'
-import { useAuthStore } from '@core/stores/auth'
 
 // Page metadata
 layout({ use: 'auth', middleware: ['guest'] })

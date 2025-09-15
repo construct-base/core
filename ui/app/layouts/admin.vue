@@ -143,6 +143,8 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
+import { useAuth } from '@/core/composables';
 const { user, logout } = useAuth()
 
 // User menu items
@@ -173,9 +175,4 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
-/* Admin-specific styles */
-.router-link-active {
-  @apply bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300;
-}
-</style>
+ 

@@ -81,7 +81,7 @@ export function useAuth() {
       loading.value = false
 
       // Redirect to login page
-      await router.push('/login')
+      await router.push('/auth/login')
     }
   }
 
@@ -143,6 +143,31 @@ export function useAuth() {
     error.value = null
   }
 
+  // Role checking function
+  const hasRole = (roleName: string): boolean => {
+    if (!user.value || !user.value.roles) {
+      return false
+    }
+
+    return user.value.roles.some(role =>
+      typeof role === 'string' ? role === roleName : role.name === roleName
+    )
+  }
+
+  // Permission checking function
+  const hasPermission = (permissionName: string): boolean => {
+    if (!user.value || !user.value.roles) {
+      return false
+    }
+
+    return user.value.roles.some(role => {
+      if (typeof role === 'string') return false
+      return role.permissions?.some(permission =>
+        typeof permission === 'string' ? permission === permissionName : permission.name === permissionName
+      )
+    })
+  }
+
   return {
     // State
     user: readonly(user),
@@ -161,6 +186,10 @@ export function useAuth() {
     getCurrentUser,
     refreshToken,
     initAuth,
-    clearError
+    clearError,
+
+    // Authorization
+    hasRole,
+    hasPermission
   }
 }

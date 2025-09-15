@@ -1,11 +1,11 @@
 # Middleware System
 
-Construct provides a flexible middleware system for route protection and navigation guards, similar to Nuxt's middleware but adapted for Vue Router.
+Construct provides a simple middleware system for route protection based on localStorage authentication state. The system follows a simple principle: **routes with middleware require authentication, everything else is public**.
 
 ## Available Middleware
 
 ### `auth`
-Protects routes that require authentication. Redirects unauthenticated users to login.
+Protects routes that require authentication. Checks localStorage for `auth_token` and `auth_user`. Redirects unauthenticated users to login.
 
 ```typescript
 // Usage in pages
@@ -13,57 +13,136 @@ layout({"use": "default", "middleware": ["auth"]})
 ```
 
 ### `guest`
-For authentication pages (login, register). Redirects authenticated users away.
+For authentication pages (login, register). Redirects authenticated users to the dashboard or intended destination.
 
 ```typescript
 // Usage in authentication pages
-layout({"use": "default", "middleware": ["guest"]})
-```
-
-### `public`
-Allows access to both authenticated and unauthenticated users. For public pages like about, landing.
-
-```typescript
-// Usage in public pages
-layout({"use": "default", "middleware": ["public"]})
+layout({"use": "auth", "middleware": ["guest"]})
 ```
 
 ### `admin`
-Restricts access to admin users only. Checks user role permissions.
+Restricts access to admin users only. Checks both authentication and user role (admin, owner, super_admin).
 
 ```typescript
 // Usage in admin pages
 layout({"use": "admin", "middleware": ["admin"]})
 ```
 
-## How to Use Middleware
-
-### In Pages
-Use the `layout()` function in your page's script setup:
-
-```vue
-<script setup lang="ts">
-// Protect with authentication
-layout({"use": "default", "middleware": ["auth"]})
-
-// Multiple middleware (executed in order)
-layout({"use": "default", "middleware": ["auth", "admin"]})
-</script>
-```
-
-### Global Middleware
-Configure in `config.ts` for application-wide middleware:
+### **No Middleware = Public**
+Routes without middleware are public and accessible to everyone.
 
 ```typescript
-export default defineConstructConfig({
-  middleware: {
-    global: ['loading'], // Applied to all routes
-    named: {
-      // Named middleware for specific use cases
-    }
-  }
-})
+// Public pages (no middleware needed)
+layout({"use": "default"})
 ```
+
+## How Authentication Works
+
+### localStorage-Based Auth
+The middleware system checks localStorage for authentication:
+
+```javascript
+// What the middleware checks
+const token = localStorage.getItem('auth_token')
+const user = localStorage.getItem('auth_user')
+
+// If both exist → user is authenticated
+// If either is missing → user is not authenticated
+```
+
+### Auth Data Structure
+```javascript
+// localStorage.getItem('auth_token')
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+// localStorage.getItem('auth_user')
+{
+  "id": 1,
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "role": {
+    "id": 1,
+    "name": "Owner"
+  }
+}
+```
+
+## Usage Examples
+
+### Protected User Page
+```vue
+<script setup lang="ts">
+// Requires authentication
+layout({"use": "default", "middleware": ["auth"]})
+
+// This page is only accessible to authenticated users
+const { user } = useAuth()
+</script>
+
+<template>
+  <div>
+    <h1>Welcome, {{ user?.first_name }}!</h1>
+  </div>
+</template>
+```
+
+### Admin Page
+```vue
+<script setup lang="ts">
+// Requires authentication + admin role
+layout({"use": "admin", "middleware": ["admin"]})
+
+// Only admins/owners can access this
+</script>
+
+<template>
+  <div>
+    <h1>Admin Dashboard</h1>
+  </div>
+</template>
+```
+
+### Public Page
+```vue
+<script setup lang="ts">
+// No middleware = public access
+layout({"use": "default"})
+
+// Everyone can access this page
+</script>
+
+<template>
+  <div>
+    <h1>About Us</h1>
+    <p>This page is accessible to everyone</p>
+  </div>
+</template>
+```
+
+### Authentication Pages
+```vue
+<script setup lang="ts">
+// Redirects authenticated users away
+layout({"use": "auth", "middleware": ["guest"]})
+
+// If user is already logged in, they'll be redirected to dashboard
+</script>
+
+<template>
+  <div>
+    <h1>Login</h1>
+    <!-- Login form -->
+  </div>
+</template>
+```
+
+## Middleware Flow
+
+1. **No middleware**: Allow access (public page)
+2. **`auth` middleware**: Check localStorage → login if missing
+3. **`guest` middleware**: Check localStorage → redirect away if present
+4. **`admin` middleware**: Check auth + role → redirect if insufficient
 
 ## Creating Custom Middleware
 
@@ -78,14 +157,25 @@ export default function subscriptionMiddleware(
   from: RouteLocationNormalized,
   next: NavigationGuardNext
 ) {
-  const { user } = useAuth()
+  // Check localStorage for auth
+  const token = localStorage.getItem('auth_token')
+  const userStr = localStorage.getItem('auth_user')
 
-  if (!user.value?.subscription?.active) {
-    next('/subscription/upgrade')
+  if (!token || !userStr) {
+    next('/auth/login')
     return
   }
 
-  next()
+  try {
+    const user = JSON.parse(userStr)
+    if (!user.subscription?.active) {
+      next('/subscription/upgrade')
+      return
+    }
+    next()
+  } catch (error) {
+    next('/auth/login')
+  }
 }
 ```
 
@@ -94,22 +184,68 @@ Register in `core/middleware/index.ts`:
 ```typescript
 import subscriptionMiddleware from './subscription'
 
-const middlewareRegistry = {
-  // ... existing middleware
-  subscription: subscriptionMiddleware
+export function registerMiddleware(router: Router) {
+  router.beforeEach((to, from, next) => {
+    const middleware = to.meta?.middleware as string | string[] | undefined
+
+    if (!middleware) {
+      next() // Public route
+      return
+    }
+
+    const middlewareName = Array.isArray(middleware) ? middleware[0] : middleware
+
+    switch (middlewareName) {
+      case 'auth':
+        authMiddleware(to, from, next)
+        break
+      case 'guest':
+        guestMiddleware(to, from, next)
+        break
+      case 'admin':
+        adminMiddleware(to, from, next)
+        break
+      case 'subscription':
+        subscriptionMiddleware(to, from, next)
+        break
+      default:
+        next() // Unknown middleware, allow access
+    }
+  })
 }
 ```
 
-## Middleware Execution Order
-
-1. **Global middleware** (from config)
-2. **Page middleware** (from layout function)
-3. Multiple middleware execute sequentially
-
 ## Best Practices
 
-- Use `public` for landing, about, documentation pages
-- Use `guest` only for login/register pages
-- Use `auth` for protected user content
-- Use `admin` for administrative functions
-- Create custom middleware for specific business logic (subscriptions, permissions, etc.)
+### Security
+- **Always validate on the backend**: Frontend middleware is for UX only
+- **Check token expiration**: Implement token refresh logic
+- **Clear sensitive data**: Remove localStorage on logout
+
+### Route Organization
+- **Public routes**: No middleware (landing, about, docs)
+- **Auth routes**: Use `guest` middleware (login, register)
+- **User routes**: Use `auth` middleware (profile, dashboard)
+- **Admin routes**: Use `admin` middleware (admin panel)
+
+### Performance
+- **Minimize middleware logic**: Keep checks simple and fast
+- **Cache auth state**: Use reactive stores instead of localStorage reads
+- **Lazy load admin components**: Only load when needed
+
+## Debugging Middleware
+
+Check the browser console for middleware execution:
+
+```javascript
+// Enable debug mode in development
+if (import.meta.env.DEV) {
+  console.log('Route:', to.path, 'Middleware:', middleware)
+  console.log('Auth state:', { token: !!token, user: !!user })
+}
+```
+
+Common issues:
+- **Redirect loops**: Check that login page has `guest` middleware
+- **Admin access denied**: Verify user role in localStorage
+- **Public pages requiring auth**: Remove middleware declaration

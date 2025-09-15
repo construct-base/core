@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { apiClient } from '@core/api/client'
-import type { User, UserCreateRequest, UserUpdateRequest, UserUpdatePasswordRequest, PaginatedResponse, ApiResponse } from '@core/types'
-
+ 
 export const useUsersStore = defineStore('users', () => {
   // State
   const users = ref<User[]>([])

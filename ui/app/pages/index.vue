@@ -17,12 +17,9 @@
 
       <!-- Installation -->
       <div class="mb-12">
-        <UCodeBlock
-          :code="installCode"
-          language="bash"
-          :header="false"
-          class="max-w-lg mx-auto"
-        />
+        <UCard class="max-w-lg mx-auto bg-slate-900 dark:bg-slate-800">
+          <pre class="text-green-400 text-sm font-mono overflow-x-auto"><code>{{ installCode }}</code></pre>
+        </UCard>
       </div>
 
       <div class="flex justify-center gap-4">

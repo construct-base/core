@@ -17,11 +17,14 @@ export default defineConfig({
             'vue-router',
             'pinia',
             {
+              // Centralized imports from index files to avoid duplicates
               '@core/utils/page-meta': ['layout'],
+              '@core/utils/navigation': ['navigateTo', 'navigateReplace', 'navigateBack'],
               '@core/types': [
                 // Common types that are frequently used
                 'User',
                 'LoginRequest',
+                'LoginResponse',
                 'RegisterRequest',
                 'ApiResponse',
                 'PaginatedResponse',
@@ -31,16 +34,15 @@ export default defineConfig({
                 // Type guards
                 'isSuccessResponse',
                 'isErrorResponse'
-              ]
+              ],
+              '@core/stores': ['useAuthStore', 'useUsersStore'],
+              '@core/composables': ['useAuth', 'useApi', 'useConstruct', 'useNotification', 'useForm', 'useDocs', 'useNavigation']
             }
           ],
           dirs: [
-            resolve(__dirname, 'composables'),
+            // Only scan app directories for auto-imports
             resolve(__dirname, '..', 'app/composables'),
-            resolve(__dirname, 'utils'),
-            resolve(__dirname, '..', 'app/utils'),
-            resolve(__dirname, 'stores'),
-            resolve(__dirname, 'types')
+            resolve(__dirname, '..', 'app/utils')
           ],
           vueTemplate: true,
           dts: resolve(__dirname, '..', '.construct/types/auto-imports.d.ts'),
@@ -64,7 +66,7 @@ export default defineConfig({
       constructPages({
         dirs: [
           { dir: 'app/pages', baseRoute: '' },
-          { dir: 'core/pages', baseRoute: '/core' }
+          { dir: 'core/pages', baseRoute: '' }
         ],
         extensions: ['.vue'],
         exclude: ['**/components/**'],

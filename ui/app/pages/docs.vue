@@ -134,11 +134,11 @@
 </template>
 
 <script setup lang="ts">
-import { useDocs } from '@core/composables/useDocs'
 
 layout({"use": "default", "middleware": ["public"]})
 
 const { currentDoc, sections, loading, error, allPages, loadDocsStructure, loadDoc, searchDocs } = useDocs()
+const { navigateTo } = useNavigation()
 
 const searchQuery = ref('')
 
@@ -194,7 +194,7 @@ watch(currentDoc, (doc) => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="postcss">
 /* Custom styles for documentation */
 .prose :deep(pre) {
   @apply bg-slate-900 dark:bg-slate-800;

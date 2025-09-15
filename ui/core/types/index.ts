@@ -105,6 +105,29 @@ export interface RegisterRequest {
   phone?: string
 }
 
+// Actual login response from API
+export interface LoginResponse {
+  id: number
+  first_name: string
+  last_name: string
+  username: string
+  phone: string
+  email: string
+  role_id: number
+  role_name: string
+  avatar_url: string
+  last_login: string
+  accessToken: string
+  exp: number
+  extend: {
+    role: {
+      id: number
+      name: string
+    }
+    user_id: number
+  }
+}
+
 export interface AuthResponse {
   success: boolean
   message?: string
