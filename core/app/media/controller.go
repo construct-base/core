@@ -29,8 +29,10 @@ func (c *MediaController) Routes(router *router.RouterGroup) {
 	router.GET("/media", c.List) // Temporarily disabled authorization: authorization.Can("read", "media")
 	router.GET("/media/all", c.ListAll) // Temporarily disabled authorization: authorization.Can("read", "media")
 	router.GET("/media/root", c.GetRootContents, authorization.Can("read", "media")) // Root folder contents
-	router.GET("/media/:id", c.Get, authorization.CanAccess("read", "media", "id"))
-	router.GET("/media/:id/contents", c.GetFolderContents, authorization.CanAccess("read", "media", "id")) // Folder contents
+	router.GET("/media/folder/:name", c.GetByName) // Get folder by name
+	router.GET("/media/folder/:name/contents", c.GetFolderContentsByName) // Get folder contents by name
+	router.GET("/media/:id", c.Get) // Temporarily disabled authorization: authorization.CanAccess("read", "media", "id")
+	router.GET("/media/:id/contents", c.GetFolderContents) // Temporarily disabled authorization: authorization.CanAccess("read", "media", "id")
 
 	// Create endpoints - require create permission on media
 	router.POST("/media", c.Create) // Temporarily disabled authorization: authorization.Can("create", "media")
@@ -223,6 +225,67 @@ func (c *MediaController) Get(ctx *router.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, item.ToResponse())
+}
+
+// GetByName godoc
+// @Summary Get media item by name
+// @Description Get a media item by name
+// @Tags Core/Media
+// @Produce json
+// @Param name path string true "Media Name"
+// @Success 200 {object} MediaResponse
+// @Router /media/folder/{name} [get]
+func (c *MediaController) GetByName(ctx *router.Context) error {
+	name := ctx.Param("name")
+	if name == "" {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "name parameter is required"})
+	}
+
+	item, err := c.Service.GetByName(name)
+	if err != nil {
+		return ctx.JSON(http.StatusNotFound, ErrorResponse{Error: "media not found"})
+	}
+
+	return ctx.JSON(http.StatusOK, item.ToResponse())
+}
+
+// GetFolderContentsByName godoc
+// @Summary Get folder contents by name
+// @Description Get the contents of a folder by name
+// @Tags Core/Media
+// @Produce json
+// @Param name path string true "Folder Name"
+// @Param page query int false "Page number"
+// @Param limit query int false "Page size"
+// @Success 200 {object} types.PaginatedResponse
+// @Router /media/folder/{name}/contents [get]
+func (c *MediaController) GetFolderContentsByName(ctx *router.Context) error {
+	name := ctx.Param("name")
+	if name == "" {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "name parameter is required"})
+	}
+
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	items, err := c.Service.GetFolderContentsByName(name, &page, &limit)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, items)
 }
 
 // List godoc

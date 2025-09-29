@@ -153,7 +153,7 @@ const handleLogin = async () => {
       toast.add({
         title: 'Welcome back!',
         description: 'Successfully signed in',
-        color: 'green'
+        color: 'success'
       })
       router.push('/')
     }
@@ -162,7 +162,7 @@ const handleLogin = async () => {
     toast.add({
       title: 'Login failed',
       description: 'An unexpected error occurred',
-      color: 'red'
+      color: 'error'
     })
   }
 }

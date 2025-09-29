@@ -62,6 +62,43 @@ func (s *MediaService) GetById(id uint) (*Media, error) {
 	return &item, nil
 }
 
+// GetByName gets a media item by name
+func (s *MediaService) GetByName(name string) (*Media, error) {
+	var item Media
+
+	if err := s.DB.Where("name = ? AND type = ?", name, "folder").First(&item).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("folder not found")
+		}
+		s.Logger.Error("failed to get media by name", logger.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to get media by name: %w", err)
+	}
+
+	// Load complete parent hierarchy recursively
+	if err := s.loadParentHierarchy(&item); err != nil {
+		s.Logger.Error("failed to load parent hierarchy", logger.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to load parent hierarchy: %w", err)
+	}
+
+	return &item, nil
+}
+
+// GetFolderContentsByName gets the contents of a folder by name
+func (s *MediaService) GetFolderContentsByName(name string, page, limit *int) (*types.PaginatedResponse, error) {
+	// First find the folder by name
+	var folder Media
+	if err := s.DB.Where("name = ? AND type = ?", name, "folder").First(&folder).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil, fmt.Errorf("folder not found")
+		}
+		s.Logger.Error("failed to find folder by name", logger.String("error", err.Error()))
+		return nil, fmt.Errorf("failed to find folder by name: %w", err)
+	}
+
+	// Now get the folder contents using the existing method
+	return s.GetFolderContents(folder.Id, page, limit)
+}
+
 // GetByIds returns multiple media items by their IDs
 func (s *MediaService) GetByIds(ids []uint) ([]*Media, error) {
 	if len(ids) == 0 {
@@ -209,8 +246,8 @@ func (s *MediaService) GetFolderContents(folderId uint, page, limit *int) (*type
 		query = query.Offset(offset).Limit(*limit)
 	}
 
-	// Execute query with preloads
-	if err := query.Preload("File").Order("type DESC, name ASC").Find(&items).Error; err != nil {
+	// Execute query without problematic File relation preload
+	if err := query.Order("type DESC, name ASC").Find(&items).Error; err != nil {
 		s.Logger.Error("failed to get folder contents", logger.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get folder contents: %w", err)
 	}
@@ -264,8 +301,8 @@ func (s *MediaService) GetRootContents(page, limit *int) (*types.PaginatedRespon
 		query = query.Offset(offset).Limit(*limit)
 	}
 
-	// Execute query with preloads
-	if err := query.Preload("File").Order("type DESC, name ASC").Find(&items).Error; err != nil {
+	// Execute query without problematic File relation preload
+	if err := query.Order("type DESC, name ASC").Find(&items).Error; err != nil {
 		s.Logger.Error("failed to get root contents", logger.String("error", err.Error()))
 		return nil, fmt.Errorf("failed to get root contents: %w", err)
 	}
@@ -769,3 +806,29 @@ func (s *MediaService) UnshareMedia(mediaId uint, userId *uint, roleId *uint) er
 	return nil
 }
 
+
+// loadParentHierarchy recursively loads the complete parent hierarchy for a media item
+func (s *MediaService) loadParentHierarchy(item *Media) error {
+	if item.ParentId == nil {
+		return nil // No parent, we're done
+	}
+
+	// Load the immediate parent
+	var parent Media
+	if err := s.DB.First(&parent, *item.ParentId).Error; err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return nil // Parent not found, skip
+		}
+		return fmt.Errorf("failed to load parent: %w", err)
+	}
+
+	// Recursively load the parent's hierarchy
+	if err := s.loadParentHierarchy(&parent); err != nil {
+		return err
+	}
+
+	// Assign the fully loaded parent
+	item.Parent = &parent
+
+	return nil
+}

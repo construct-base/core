@@ -42,7 +42,7 @@ func (item *Media) GetModelName() string {
 
 // Preload preloads all the model's relationships
 func (item *Media) Preload(db *gorm.DB) *gorm.DB {
-	return db.Preload("File").Preload("Parent").Preload("Children")
+	return db.Preload("Parent").Preload("Children")
 }
 
 // IsFolder checks if the media item is a folder

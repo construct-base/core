@@ -54,7 +54,7 @@ export const useMediaStore = defineStore('media', () => {
     return breadcrumbs.value.map(crumb => ({
       label: crumb.name,
       icon: crumb.name === 'Home' ? 'i-lucide-home' : 'i-lucide-folder',
-      click: () => navigateToFolder(crumb.id)
+      to: crumb.name === 'Home' ? '/media' : `/media/${crumb.name || crumb.id}`
     }))
   })
 
@@ -100,7 +100,47 @@ export const useMediaStore = defineStore('media', () => {
 
     try {
       const response = await mediaApi.getFolderContents(folderId, params)
-      items.value = Array.isArray(response.data) ? response.data : []
+      let folderItems = Array.isArray(response.data) ? response.data : []
+
+      // Add parent navigation when inside a folder
+      if (currentFolder.value && currentFolder.value.parent) {
+        const parentItem: MediaListItem = {
+          id: currentFolder.value.parent.id,
+          name: `📁 ${currentFolder.value.parent.name}`,
+          type: 'folder',
+          description: '← Go to parent folder',
+          parent_id: currentFolder.value.parent.parent_id,
+          created_at: currentFolder.value.parent.created_at,
+          updated_at: currentFolder.value.parent.updated_at,
+          mime_type: '',
+          size: 0,
+          owner_id: 0,
+          is_shared: false,
+          path: currentFolder.value.parent.path || '',
+          child_count: 0
+        }
+        folderItems = [parentItem, ...folderItems]
+      } else if (currentFolder.value && !currentFolder.value.parent) {
+        // Add "Home" navigation when in a root subfolder
+        const homeItem: MediaListItem = {
+          id: 0,
+          name: '🏠 Home',
+          type: 'folder',
+          description: '← Go to root',
+          parent_id: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          mime_type: '',
+          size: 0,
+          owner_id: 0,
+          is_shared: false,
+          path: '/',
+          child_count: 0
+        }
+        folderItems = [homeItem, ...folderItems]
+      }
+
+      items.value = folderItems
       if (response.pagination) {
         pagination.value = response.pagination
       }
@@ -286,6 +326,74 @@ export const useMediaStore = defineStore('media', () => {
     }
   }
 
+  const navigateToFolderByName = async (folderName: string) => {
+    try {
+      // Use the name-based API call
+      const response = await api.get<MediaItem>(`/api/media/folder/${folderName}`)
+      if (isSuccessResponse(response) && response.data) {
+        const folder = response.data
+        currentFolder.value = folder
+        updateBreadcrumbs(folder)
+
+        // Get folder contents by name
+        const contentsResponse = await api.getList<MediaListItem>(`/api/media/folder/${folderName}/contents`)
+        if (isSuccessResponse(contentsResponse) && 'data' in contentsResponse) {
+          let folderItems = Array.isArray(contentsResponse.data) ? contentsResponse.data : []
+
+          // Add parent navigation when inside a folder
+          if (folder.parent) {
+            const parentItem: MediaListItem = {
+              id: folder.parent.id,
+              name: `📁 ${folder.parent.name}`,
+              type: 'folder',
+              description: '← Go to parent folder',
+              parent_id: folder.parent.parent_id,
+              created_at: folder.parent.created_at,
+              updated_at: folder.parent.updated_at,
+              mime_type: '',
+              size: 0,
+              owner_id: 0,
+              is_shared: false,
+              path: folder.parent.path || '',
+              child_count: 0
+            }
+            folderItems = [parentItem, ...folderItems]
+          } else {
+            // Add "Home" navigation when in a root subfolder
+            const homeItem: MediaListItem = {
+              id: 0,
+              name: '🏠 Home',
+              type: 'folder',
+              description: '← Go to root',
+              parent_id: null,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+              mime_type: '',
+              size: 0,
+              owner_id: 0,
+              is_shared: false,
+              path: '/',
+              child_count: 0
+            }
+            folderItems = [homeItem, ...folderItems]
+          }
+
+          items.value = folderItems
+          pagination.value = 'pagination' in contentsResponse && contentsResponse.pagination
+            ? contentsResponse.pagination
+            : {
+                total: items.value.length,
+                page: 1,
+                page_size: items.value.length,
+                total_pages: 1
+              }
+        }
+      }
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to navigate to folder'
+    }
+  }
+
   const updateBreadcrumbs = (folder: MediaItem) => {
     const crumbs: BreadcrumbItem[] = [{ name: 'Home', path: '/' }]
 
@@ -401,6 +509,7 @@ export const useMediaStore = defineStore('media', () => {
 
     // Navigation
     navigateToFolder,
+    navigateToFolderByName,
     updateBreadcrumbs,
 
     // Selection

@@ -18,6 +18,32 @@ import type { PaginatedResponse } from '../types'
 export const useMedia = () => {
   const api = useApi()
 
+  // Custom upload method since useApi doesn't provide one
+  const uploadRequest = async <T>(endpoint: string, formData: FormData, options?: {
+    onUploadProgress?: (event: ProgressEvent) => void
+  }): Promise<{ success: boolean; data?: T; error?: string }> => {
+    try {
+      const headers = api.getAuthHeaders()
+      // Remove Content-Type to let browser set it for multipart/form-data
+      delete headers['Content-Type']
+
+      const response = await fetch(api.buildURL(endpoint), {
+        method: 'POST',
+        headers,
+        body: formData
+      })
+
+      if (!response.ok) {
+        return { success: false, error: `HTTP ${response.status}: ${response.statusText}` }
+      }
+
+      const data = await response.json()
+      return { success: true, data }
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Upload failed' }
+    }
+  }
+
   // State
   const loading = ref(false)
   const uploadProgress = ref<FileUploadProgress[]>([])
@@ -32,26 +58,51 @@ export const useMedia = () => {
 
   // API Methods
   const fetchMedia = async (params?: MediaQueryParams): Promise<PaginatedResponse<MediaListItem>> => {
-    return await apiCall<PaginatedResponse<MediaListItem>>({
-      endpoint: '/media',
-      method: 'GET',
-      params
-    })
+    // Convert QueryParams to Record<string, string> for API
+    const apiParams: Record<string, string> | undefined = params ?
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => [key, String(value)])
+      ) : undefined
+
+    const response = await api.getList<MediaListItem>('/api/media', apiParams)
+
+    if (isSuccessResponse(response) && 'data' in response) {
+      const items = Array.isArray(response.data) ? response.data : []
+      const pagination = 'pagination' in response && response.pagination
+        ? response.pagination
+        : {
+            total: items.length,
+            page: 1,
+            page_size: items.length,
+            total_pages: 1
+          }
+
+      return { data: items, pagination }
+    } else {
+      throw new Error('error' in response ? response.error : 'Failed to fetch media')
+    }
   }
 
   const fetchAllMedia = async (): Promise<MediaListItem[]> => {
-    const response = await apiCall<MediaListItem[]>({
-      endpoint: '/media/all',
-      method: 'GET'
-    })
-    return response
+    const response = await api.get<MediaListItem[]>('/api/media/all')
+
+    if (isSuccessResponse(response) && response.data) {
+      return Array.isArray(response.data) ? response.data : []
+    } else {
+      throw new Error('error' in response ? response.error : 'Failed to fetch all media')
+    }
   }
 
   const fetchMediaItem = async (id: number): Promise<MediaItem> => {
-    return await apiCall<MediaItem>({
-      endpoint: `/media/${id}`,
-      method: 'GET'
-    })
+    const response = await api.get<MediaItem>(`/api/media/${id}`)
+
+    if (isSuccessResponse(response) && response.data) {
+      return response.data
+    } else {
+      throw new Error('error' in response ? response.error : 'Failed to fetch media item')
+    }
   }
 
   const createFolder = async (name: string, description?: string, parentId?: number): Promise<MediaItem> => {
@@ -78,12 +129,33 @@ export const useMedia = () => {
   }
 
   const getFolderContents = async (folderId?: number, params?: FolderContentsRequest): Promise<PaginatedResponse<MediaListItem>> => {
-    const endpoint = folderId ? `/media/folders/${folderId}/contents` : '/media'
-    return await apiCall<PaginatedResponse<MediaListItem>>({
-      endpoint,
-      method: 'GET',
-      params
-    })
+    const endpoint = folderId ? `/api/media/${folderId}/contents` : '/api/media/root'
+
+    // Convert QueryParams to Record<string, string> for API
+    const apiParams: Record<string, string> | undefined = params ?
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => [key, String(value)])
+      ) : undefined
+
+    const response = await api.getList<MediaListItem>(endpoint, apiParams)
+
+    if (isSuccessResponse(response) && 'data' in response) {
+      const items = Array.isArray(response.data) ? response.data : []
+      const pagination = 'pagination' in response && response.pagination
+        ? response.pagination
+        : {
+            total: items.length,
+            page: 1,
+            page_size: items.length,
+            total_pages: 1
+          }
+
+      return { data: items, pagination }
+    } else {
+      throw new Error('error' in response ? response.error : 'Failed to fetch folder contents')
+    }
   }
 
   const uploadFile = async (file: File, parentId?: number, onProgress?: (progress: number) => void): Promise<MediaItem> => {
@@ -104,13 +176,7 @@ export const useMedia = () => {
     uploadProgress.value.push(progressItem)
 
     try {
-      const response = await apiCall<MediaItem>({
-        endpoint: '/media/files',
-        method: 'POST',
-        data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        },
+      const response = await uploadRequest<MediaItem>('/api/media', formData, {
         onUploadProgress: (event) => {
           if (event.lengthComputable) {
             const progress = Math.round((event.loaded * 100) / event.total)
@@ -119,6 +185,10 @@ export const useMedia = () => {
           }
         }
       })
+
+      if (!response.success || !response.data) {
+        throw new Error(response.error || 'Upload failed')
+      }
 
       progressItem.status = 'success'
       progressItem.progress = 100
@@ -131,7 +201,7 @@ export const useMedia = () => {
         }
       }, 2000)
 
-      return response
+      return response.data
     } catch (error) {
       progressItem.status = 'error'
       progressItem.error = error instanceof Error ? error.message : 'Upload failed'
@@ -149,24 +219,23 @@ export const useMedia = () => {
       const formData = new FormData()
       if (data.name) formData.append('name', data.name)
       if (data.description) formData.append('description', data.description)
-      if (data.parent_id) formData.append('parent_id', data.parent_id.toString())
-      if (data.is_shared !== undefined) formData.append('is_shared', data.is_shared.toString())
       formData.append('file', data.file)
 
-      return await apiCall<MediaItem>({
-        endpoint: `/media/${id}`,
-        method: 'PUT',
-        data: formData,
-        headers: {
-          'Content-Type': 'multipart/form-data'
-        }
-      })
+      const response = await uploadRequest<MediaItem>(`/api/media/${id}`, formData)
+
+      if (response.success && response.data) {
+        return response.data
+      } else {
+        throw new Error(response.error || 'Failed to update media')
+      }
     } else {
-      return await apiCall<MediaItem>({
-        endpoint: `/media/${id}`,
-        method: 'PUT',
-        data
-      })
+      const response = await api.put<MediaItem>(`/api/media/${id}`, data)
+
+      if (isSuccessResponse(response) && response.data) {
+        return response.data
+      } else {
+        throw new Error('error' in response ? response.error : 'Failed to update media')
+      }
     }
   }
 
@@ -174,48 +243,71 @@ export const useMedia = () => {
     const formData = new FormData()
     formData.append('file', file)
 
-    return await apiCall<MediaItem>({
-      endpoint: `/media/${id}/file`,
-      method: 'PUT',
-      data: formData,
-      headers: {
-        'Content-Type': 'multipart/form-data'
-      }
-    })
+    const response = await uploadRequest<MediaItem>(`/api/media/${id}/file`, formData)
+
+    if (response.success && response.data) {
+      return response.data
+    } else {
+      throw new Error(response.error || 'Failed to update media file')
+    }
   }
 
   const removeMediaFile = async (id: number): Promise<MediaItem> => {
-    return await apiCall<MediaItem>({
-      endpoint: `/media/${id}/file`,
-      method: 'DELETE'
-    })
+    const response = await api.delete<MediaItem>(`/api/media/${id}/file`)
+
+    if (isSuccessResponse(response) && response.data) {
+      return response.data
+    } else {
+      throw new Error('error' in response ? response.error : 'Failed to remove media file')
+    }
   }
 
   const deleteMedia = async (id: number): Promise<void> => {
-    await apiCall<void>({
-      endpoint: `/media/${id}`,
-      method: 'DELETE'
-    })
+    const response = await api.delete<void>(`/api/media/${id}`)
+
+    if (!isSuccessResponse(response)) {
+      throw new Error('error' in response ? response.error : 'Failed to delete media')
+    }
   }
 
   const shareItems = async (itemIds: number[], userIds?: number[], roleIds?: number[]): Promise<void> => {
-    await apiCall<void>({
-      endpoint: '/media/share',
-      method: 'POST',
-      data: {
-        item_ids: itemIds,
-        user_ids: userIds,
-        role_ids: roleIds
-      }
+    const response = await api.post<void>('/api/media/share', {
+      item_ids: itemIds,
+      user_ids: userIds,
+      role_ids: roleIds
     })
+
+    if (!isSuccessResponse(response)) {
+      throw new Error('error' in response ? response.error : 'Failed to share items')
+    }
   }
 
   const getSharedItems = async (params?: { page?: number; limit?: number }): Promise<PaginatedResponse<MediaListItem>> => {
-    return await apiCall<PaginatedResponse<MediaListItem>>({
-      endpoint: '/media/shared',
-      method: 'GET',
-      params
-    })
+    // Convert QueryParams to Record<string, string> for API
+    const apiParams: Record<string, string> | undefined = params ?
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => [key, String(value)])
+      ) : undefined
+
+    const response = await api.getList<MediaListItem>('/api/media/shared', apiParams)
+
+    if (isSuccessResponse(response) && 'data' in response) {
+      const items = Array.isArray(response.data) ? response.data : []
+      const pagination = 'pagination' in response && response.pagination
+        ? response.pagination
+        : {
+            total: items.length,
+            page: 1,
+            page_size: items.length,
+            total_pages: 1
+          }
+
+      return { data: items, pagination }
+    } else {
+      throw new Error('error' in response ? response.error : 'Failed to fetch shared items')
+    }
   }
 
   // Navigation helpers
