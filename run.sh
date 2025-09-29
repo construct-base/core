@@ -27,15 +27,43 @@ cleanup() {
 # Set up signal handling
 trap cleanup SIGINT SIGTERM
 
+# Function to kill existing processes on ports 8100 and 3100
+kill_existing_processes() {
+    echo -e "${YELLOW}🧹 Cleaning up existing processes...${NC}"
+
+    # Kill processes on port 8100 (Go API)
+    if lsof -ti:8100 >/dev/null 2>&1; then
+        echo -e "${YELLOW}   Killing processes on port 8100...${NC}"
+        lsof -ti:8100 | xargs kill -9 2>/dev/null || true
+    fi
+
+    # Kill processes on port 3100 (Vue UI)
+    if lsof -ti:3100 >/dev/null 2>&1; then
+        echo -e "${YELLOW}   Killing processes on port 3100...${NC}"
+        lsof -ti:3100 | xargs kill -9 2>/dev/null || true
+    fi
+
+    # Kill any remaining Go or Bun dev processes
+    pkill -f "go run main.go\|bun.*dev" 2>/dev/null || true
+
+    # Wait a moment for processes to clean up
+    sleep 1
+
+    echo -e "${GREEN}✓ Cleanup completed${NC}"
+}
+
+# Clean up existing processes first
+kill_existing_processes
+
 # Check if Go is installed
 if ! command -v go &> /dev/null; then
     echo -e "${RED}❌ Go is not installed. Please install Go first.${NC}"
     exit 1
 fi
 
-# Check if Node.js is installed
-if ! command -v node &> /dev/null; then
-    echo -e "${RED}❌ Node.js is not installed. Please install Node.js first.${NC}"
+# Check if Bun is installed
+if ! command -v bun &> /dev/null; then
+    echo -e "${RED}❌ Bun is not installed. Please install Bun first.${NC}"
     exit 1
 fi
 
@@ -55,21 +83,21 @@ fi
 
 echo -e "${GREEN}✓ Go API server started (PID: $GO_PID)${NC}"
 
-# Install UI dependencies if needed
-if [ ! -d "ui/node_modules" ]; then
-    echo -e "${BLUE}📦 Installing UI dependencies...${NC}"
-    cd ui && npm install && cd ..
+# Install Vue dependencies if needed
+if [ ! -d "vue/node_modules" ]; then
+    echo -e "${BLUE}📦 Installing Vue dependencies...${NC}"
+    cd vue && bun install && cd ..
     if [ $? -ne 0 ]; then
-        echo -e "${RED}❌ Failed to install UI dependencies${NC}"
+        echo -e "${RED}❌ Failed to install Vue dependencies${NC}"
         kill $GO_PID
         exit 1
     fi
-    echo -e "${GREEN}✓ UI dependencies installed${NC}"
+    echo -e "${GREEN}✓ Vue dependencies installed${NC}"
 fi
 
 # Start Vue UI server
 echo -e "${BLUE}🎨 Starting Vue UI server on port 3100...${NC}"
-cd ui && npm run dev &
+cd vue && bun run dev --port 3100 &
 UI_PID=$!
 cd ..
 

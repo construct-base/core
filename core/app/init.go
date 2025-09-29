@@ -5,7 +5,7 @@ import (
 	"base/core/app/authorization"
 	"base/core/app/media"
 	"base/core/app/oauth"
-	"base/core/app/profile"
+	"base/core/app/users"
 	"base/core/module"
 	"base/core/scheduler"
 	"base/core/translation"
@@ -20,7 +20,7 @@ func (cm *CoreModules) GetCoreModules(deps module.Dependencies) map[string]modul
 	modules := make(map[string]module.Module)
 
 	// Core modules - essential system functionality
-	modules["users"] = profile.NewUserModule(
+	modules["users"] = users.NewUsersModule(
 		deps.DB,
 		deps.Router,
 		deps.Logger,

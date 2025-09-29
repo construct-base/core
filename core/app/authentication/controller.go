@@ -160,7 +160,7 @@ func (c *AuthController) ForgotPassword(ctx *router.Context) error {
 		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
 	}
 
-	c.logger.Info("Processing forgot password request", zap.String("email", req.Email))
+	c.logger.Info("Processing forgot password request", logger.String("email", req.Email))
 
 	err := c.service.ForgotPassword(req.Email)
 	if err != nil {

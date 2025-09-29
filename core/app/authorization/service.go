@@ -71,6 +71,18 @@ func (s *AuthorizationService) GetRole(id uint64) (*Role, error) {
 		return nil, result.Error
 	}
 
+	// Count permissions for this role
+	var count int64
+	if err := s.DB.Model(&RolePermission{}).
+		Where("role_id = ?", role.Id).
+		Count(&count).Error; err != nil {
+		// Log the error but continue
+		fmt.Printf("Error counting permissions for role %d: %v\n", role.Id, err)
+	}
+
+	// Set the permission count
+	role.PermissionCount = int(count)
+
 	return &role, nil
 }
 
@@ -684,3 +696,4 @@ func (s *AuthorizationService) SetupRolePermissions() error {
 
 	return nil
 }
+

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"base/core/app/authorization"
 	"base/core/logger"
 	"base/core/router"
 	"base/core/storage"
@@ -24,21 +25,29 @@ func NewMediaController(service *MediaService, storage *storage.ActiveStorage, l
 }
 
 func (c *MediaController) Routes(router *router.RouterGroup) {
-	// Main CRUD endpoints
-	router.GET("/media", c.List) // Paginated list
-	router.POST("/media", c.Create)
+	// Read endpoints - require read permission on media
+	router.GET("/media", c.List) // Temporarily disabled authorization: authorization.Can("read", "media")
+	router.GET("/media/all", c.ListAll) // Temporarily disabled authorization: authorization.Can("read", "media")
+	router.GET("/media/root", c.GetRootContents, authorization.Can("read", "media")) // Root folder contents
+	router.GET("/media/:id", c.Get, authorization.CanAccess("read", "media", "id"))
+	router.GET("/media/:id/contents", c.GetFolderContents, authorization.CanAccess("read", "media", "id")) // Folder contents
 
-	// Specific endpoints (must come before :id routes)
-	router.GET("/media/all", c.ListAll) // Unpaginated list
+	// Create endpoints - require create permission on media
+	router.POST("/media", c.Create) // Temporarily disabled authorization: authorization.Can("create", "media")
+	router.POST("/media/folders", c.CreateFolder) // Temporarily disabled authorization: authorization.Can("create", "media")
 
-	// Parameterized routes (must come last)
-	router.GET("/media/:id", c.Get)
-	router.PUT("/media/:id", c.Update)
-	router.DELETE("/media/:id", c.Delete)
+	// Update endpoints - require update permission on specific media
+	router.PUT("/media/:id", c.Update, authorization.CanAccess("update", "media", "id"))
+	router.PUT("/media/:id/file", c.UpdateFile, authorization.CanAccess("update", "media", "id"))
 
-	// File management endpoints
-	router.PUT("/media/:id/file", c.UpdateFile)
-	router.DELETE("/media/:id/file", c.RemoveFile)
+	// Delete endpoints - require delete permission on specific media
+	router.DELETE("/media/:id", c.Delete, authorization.CanAccess("delete", "media", "id"))
+	router.DELETE("/media/:id/file", c.RemoveFile, authorization.CanAccess("update", "media", "id"))
+
+	// Sharing endpoints - require update permission on specific media
+	router.POST("/media/:id/share", c.ShareMedia, authorization.CanAccess("update", "media", "id"))
+	router.GET("/media/:id/shares", c.GetMediaShares, authorization.CanAccess("read", "media", "id"))
+	router.DELETE("/media/:id/shares", c.UnshareMedia, authorization.CanAccess("update", "media", "id"))
 }
 
 // Create godoc
@@ -267,6 +276,210 @@ func (c *MediaController) ListAll(ctx *router.Context) error {
 	}
 
 	return ctx.JSON(http.StatusOK, result)
+}
+
+// CreateFolder godoc
+// @Summary Create a new folder
+// @Description Create a new folder in the media system
+// @Tags Core/Media
+// @Accept json
+// @Produce json
+// @Param request body CreateFolderRequest true "Folder creation request"
+// @Success 201 {object} MediaResponse
+// @Router /media/folders [post]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (c *MediaController) CreateFolder(ctx *router.Context) error {
+	var req CreateFolderRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	}
+
+	folder, err := c.Service.CreateFolder(&req)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusCreated, folder.ToResponse())
+}
+
+// GetFolderContents godoc
+// @Summary Get folder contents
+// @Description Get the contents of a specific folder
+// @Tags Core/Media
+// @Produce json
+// @Param id path int true "Folder Id"
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} types.PaginatedResponse
+// @Router /media/{id}/contents [get]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (c *MediaController) GetFolderContents(ctx *router.Context) error {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id parameter"})
+	}
+
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	result, err := c.Service.GetFolderContents(uint(id), &page, &limit)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, result)
+}
+
+// GetRootContents godoc
+// @Summary Get root folder contents
+// @Description Get the contents of the root directory
+// @Tags Core/Media
+// @Produce json
+// @Param page query int false "Page number"
+// @Param limit query int false "Items per page"
+// @Success 200 {object} types.PaginatedResponse
+// @Router /media/root [get]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (c *MediaController) GetRootContents(ctx *router.Context) error {
+	page := 1
+	limit := 10
+
+	if pageStr := ctx.Query("page"); pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
+	}
+
+	if limitStr := ctx.Query("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 {
+			limit = l
+		}
+	}
+
+	result, err := c.Service.GetRootContents(&page, &limit)
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, result)
+}
+
+// ShareMedia godoc
+// @Summary Share a media item
+// @Description Share a media item with users or roles
+// @Tags Core/Media
+// @Accept json
+// @Produce json
+// @Param id path int true "Media Id"
+// @Param request body ShareMediaRequest true "Share request"
+// @Success 200 "Success"
+// @Router /media/{id}/share [post]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (c *MediaController) ShareMedia(ctx *router.Context) error {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id parameter"})
+	}
+
+	var req ShareMediaRequest
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: err.Error()})
+	}
+
+	// Set the media ID from the URL parameter
+	req.MediaId = uint(id)
+
+	if err := c.Service.ShareMedia(&req); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "media shared successfully"})
+}
+
+// GetMediaShares godoc
+// @Summary Get media shares
+// @Description Get sharing information for a media item
+// @Tags Core/Media
+// @Produce json
+// @Param id path int true "Media Id"
+// @Success 200 {array} MediaShareResponse
+// @Router /media/{id}/shares [get]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (c *MediaController) GetMediaShares(ctx *router.Context) error {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id parameter"})
+	}
+
+	shares, err := c.Service.GetMediaShares(uint(id))
+	if err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, shares)
+}
+
+// UnshareMedia godoc
+// @Summary Unshare a media item
+// @Description Remove sharing permissions for a media item
+// @Tags Core/Media
+// @Produce json
+// @Param id path int true "Media Id"
+// @Param user_id query int false "User Id to unshare from"
+// @Param role_id query int false "Role Id to unshare from"
+// @Success 200 "Success"
+// @Router /media/{id}/shares [delete]
+// @Security ApiKeyAuth
+// @Security BearerAuth
+func (c *MediaController) UnshareMedia(ctx *router.Context) error {
+	id, err := strconv.ParseUint(ctx.Param("id"), 10, 32)
+	if err != nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "invalid id parameter"})
+	}
+
+	var userId *uint
+	var roleId *uint
+
+	if userIdStr := ctx.Query("user_id"); userIdStr != "" {
+		if parsedUserId, err := strconv.ParseUint(userIdStr, 10, 32); err == nil {
+			userIdVal := uint(parsedUserId)
+			userId = &userIdVal
+		}
+	}
+
+	if roleIdStr := ctx.Query("role_id"); roleIdStr != "" {
+		if parsedRoleId, err := strconv.ParseUint(roleIdStr, 10, 32); err == nil {
+			roleIdVal := uint(parsedRoleId)
+			roleId = &roleIdVal
+		}
+	}
+
+	if userId == nil && roleId == nil {
+		return ctx.JSON(http.StatusBadRequest, ErrorResponse{Error: "either user_id or role_id must be provided"})
+	}
+
+	if err := c.Service.UnshareMedia(uint(id), userId, roleId); err != nil {
+		return ctx.JSON(http.StatusInternalServerError, ErrorResponse{Error: err.Error()})
+	}
+
+	return ctx.JSON(http.StatusOK, map[string]string{"message": "media unshared successfully"})
 }
 
 type ErrorResponse struct {

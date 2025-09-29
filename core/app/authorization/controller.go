@@ -282,7 +282,7 @@ func (c *AuthorizationController) DeleteRole(ctx *router.Context) error {
 // @Produce json
 // @Success 200 {object} object{data=[]Permission} "Successful operation"
 // @Failure 500 {object} types.ErrorResponse "Internal server error"
-// @Router /authorization/permissions [get]
+// @Router /api/authorization/permissions [get]
 func (c *AuthorizationController) GetPermissions(ctx *router.Context) error {
 	c.Logger.Info("Fetching all permissions")
 
@@ -676,3 +676,4 @@ func (c *AuthorizationController) CheckPermission(ctx *router.Context) error {
 		"has_permission": hasPermission,
 	})
 }
+

@@ -1,0 +1,41 @@
+{
+  "name": "vue",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "lint": "eslint --ext .js,.vue,.ts src",
+    "lint:fix": "eslint --ext .js,.vue,.ts src --fix",
+    "typecheck": "vue-tsc --noEmit",
+    "typecheck:watch": "vue-tsc --noEmit --watch",
+    "debug:lint": "eslint --ext .js,.vue,.ts src --debug",
+    "debug:typecheck": "vue-tsc --noEmit --verbose",
+    "check": "bun run typecheck && bun run lint"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.0.0",
+    "@unovis/ts": "^1.6.1",
+    "@unovis/vue": "^1.6.1",
+    "date-fns": "^4.1.0",
+    "pinia": "^3.0.3",
+    "vue": "^3.5.21",
+    "vue-router": "^4.5.1",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "eslint": "^9.36.0",
+    "eslint-plugin-vue": "^10.5.0",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.44.1",
+    "vite": "^7.1.7",
+    "vue-tsc": "^3.0.8"
+  },
+  "resolutions": {
+    "unimport": "4.1.1"
+  },
+  "packageManager": "pnpm@10.17.1"
+}
