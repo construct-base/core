@@ -333,8 +333,8 @@ const filteredAvailablePermissions = computed(() => {
 })
 
 // Event handlers
-const handleRoleSelect = (role: Role) => {
-  store.selectedRole = role
+const handleRoleSelect = (row: any) => {
+  store.selectedRole = row.original || row
 }
 
 const handleEdit = (role: Role) => {
