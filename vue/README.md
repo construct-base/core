@@ -1,58 +1,128 @@
-# Vue Dashboard Template
+# Construct Vue Framework
 
-[![Nuxt UI](https://img.shields.io/badge/Made%20with-Nuxt%20UI-00DC82?logo=nuxt&labelColor=020420)](https://ui.nuxt.com)
+> The frontend framework for **Construct** - A modern full-stack framework combining Vue 3 + Base Go.
 
-Get started with the Vite + Vue dashboard template with multiple pages, collapsible sidebar, keyboard shortcuts, light & dark more, command palette and more, powered by [Nuxt UI](https://ui.nuxt.com).
+## Philosophy
 
-- [Live Demo](https://dashboard-vue-template.nuxt.dev)
-- [Documentation](https://ui.nuxt.com/docs/getting-started/installation/vue)
+Construct Vue brings together the best of both worlds:
+- **Vue's reactive UI** - Component-based, modern, developer-friendly
+- **Go's robust backend** - Fast, type-safe, concurrent, scalable
 
-<a href="https://dashboard-vue-template.nuxt.dev/" target="_blank">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://ui.nuxt.com/assets/templates/vue/dashboard-dark.png">
-    <source media="(prefers-color-scheme: light)" srcset="https://ui.nuxt.com/assets/templates/vue/dashboard-light.png">
-    <img alt="Nuxt Dashboard Template" src="https://ui.nuxt.com/assets/templates/vue/dashboard-light.png">
-  </picture>
-</a>
-
-> The dashboard template for Nuxt is on https://github.com/nuxt-ui-templates/dashboard.
+They work as **one cohesive framework**, not separate frontend/backend apps.
 
 ## Quick Start
 
-```bash [Terminal]
-npm create nuxt@latest -- --no-modules -t github:nuxt-ui-templates/dashboard-vue
+### Development
+```bash
+# Start both Vue (3100) and Go (8100)
+cd .. && ./run.sh
+
+# Or start Vue only
+bun run dev
 ```
 
-## Deploy your own
+### Production Build
+```bash
+# Build Vue SPA → outputs to ../public/
+bun run build
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-name=dashboard-vue&repository-url=https%3A%2F%2Fgithub.com%2Fnuxt-ui-templates%2Fdashboard-vue&demo-image=https%3A%2F%2Fui.nuxt.com%2Fassets%2Ftemplates%2Fvue%2Fdashboard-dark.png&demo-url=https%3A%2F%2Fdashboard-vue-template.nuxt.dev%2F&demo-title=Vue%20Dashboard%20Template&demo-description=A%20dashboard%20template%20with%20multi-column%20layout%20for%20building%20sophisticated%20admin%20interfaces.)
+# Go serves ../public/ with nginx or built-in server
+```
 
-## Setup
+## Architecture
 
-Make sure to install the dependencies:
+### Convention over Configuration
+
+#### 1. **Layouts = Middleware**
+Layouts automatically handle authentication and routing:
+
+```vue
+<!-- layouts/default.vue - Requires authentication -->
+<script setup>
+import { useAuth } from '@/composables/useAuth'
+const { isAuthenticated } = useAuth()
+
+onMounted(() => {
+  if (!isAuthenticated.value) router.push('/login')
+})
+</script>
+```
+
+Pages inherit layout middleware based on route configuration.
+
+#### 2. **File-Based Routing**
+```
+pages/users.vue              → /users
+pages/users/[id].vue         → /users/:id
+pages/roles/[id]/permissions.vue → /roles/:id/permissions
+```
+
+#### 3. **Type-Safe API Client**
+```typescript
+import { apiClient } from '@/api/client'
+
+// TypeScript knows the response type from Go models
+const users = await apiClient.getUsers()
+```
+
+#### 4. **Persistent Authentication**
+```typescript
+import { useAuth } from '@/composables/useAuth'
+
+const { user, isAuthenticated, login, logout } = useAuth()
+
+// Login persists to localStorage
+await login({ email, password })
+
+// Auto-restores on page refresh
+onMounted(() => initAuth())
+```
+
+## Integration with Base Go
+
+### Authentication Flow
+```
+Vue Login Form
+    ↓
+POST /api/auth/login (Go)
+    ↓
+JWT Token + User Data
+    ↓
+Store in localStorage
+    ↓
+Include in all API requests (Authorization: Bearer <token>)
+```
+
+### API Endpoints (Go Backend)
+- `POST /api/auth/login` - Login
+- `POST /api/auth/register` - Register
+- `GET /api/users` - List users
+- `POST /api/users` - Create user
+- `PUT /api/users/:id` - Update user
+- `DELETE /api/users/:id` - Delete user
+- `GET /api/roles` - List roles
+- `POST /api/roles/:id/permissions` - Sync role permissions
+- `GET /storage/:path` - Serve uploaded files
+
+## Configuration
+
+See `construct.config.ts` for all framework configuration options.
+
+## Building for Production
 
 ```bash
-pnpm install
+# 1. Build Vue app
+cd vue && bun run build
+
+# 2. Build Go binary
+cd .. && go build -o construct main.go
+
+# 3. Run (Go serves public/)
+./construct
+
+# OR use nginx to serve public/ and proxy /api to Go
 ```
 
-## Development Server
+## License
 
-Start the development server on `http://localhost:5173`:
-
-```bash
-pnpm dev
-```
-
-## Production
-
-Build the application for production:
-
-```bash
-pnpm build
-```
-
-Locally preview production build:
-
-```bash
-pnpm preview
-```
+MIT

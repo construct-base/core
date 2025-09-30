@@ -23,8 +23,9 @@
     /* Path Mapping */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["view/*"],
+      "@core/*": ["core/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "auto-imports.d.ts", "components.d.ts"]
+  "include": ["core/**/*.ts", "core/**/*.tsx", "core/**/*.vue", "view/**/*.ts", "view/**/*.tsx", "view/**/*.vue", "structures/**/*.ts", "structures/**/*.tsx", "structures/**/*.vue", "auto-imports.d.ts", "components.d.ts"]
 }

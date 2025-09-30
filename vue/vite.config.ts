@@ -18,8 +18,22 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      '@': resolve(__dirname, 'view'),
+      '@core': resolve(__dirname, 'core'),
     }
+  },
+  build: {
+    outDir: '../dist/public',
+    emptyOutDir: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor': ['vue', 'vue-router', 'pinia']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000,
+    sourcemap: false
   },
   server: {
     port: 3100,
@@ -43,6 +57,12 @@ export default defineConfig({
     }
   },
   define: {
-    'import.meta.env.VITE_API_URL': JSON.stringify('http://localhost:8100')
+    // In production, API is served from same origin (Go serves both)
+    // In dev, proxy to Go backend
+    'import.meta.env.VITE_API_URL': JSON.stringify(
+      process.env.NODE_ENV === 'production'
+        ? '' // Same origin (Go serves everything)
+        : 'http://localhost:8100' // Dev mode: proxy
+    )
   }
 })

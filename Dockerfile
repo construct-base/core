@@ -25,8 +25,8 @@ RUN go mod download
 # Copy the rest of your application code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=1 go build -o /base-api .
+# Build the application to dist/
+RUN CGO_ENABLED=1 go build -o /dist/construct main.go
 
 # Stage 3: Final runtime image
 FROM debian:bookworm-slim AS final
@@ -42,21 +42,18 @@ ARG UID=10001
 RUN useradd -r -u ${UID} appuser
 
 # Copy the Go binary and set permissions
-COPY --from=go-builder /base-api .
-RUN chown appuser:appuser /app/base-api
-RUN chmod +x /app/base-api
+COPY --from=go-builder /dist/construct .
+RUN chmod +x /app/construct
 
-# Copy Vue built frontend
-COPY --from=vue-builder /app/vue/dist ./vue/dist
+# Copy Vue built frontend from dist/public
+COPY --from=vue-builder /app/dist/public ./public
 
-# Copy other necessary files
-COPY --from=go-builder /src/logs ./logs
-COPY --from=go-builder /src/storage ./storage
-COPY --from=go-builder /src/core ./core
-COPY --from=go-builder /src/api ./api
+# Copy .env.example as template (users can override with volume mount)
+COPY .env.example ./.env.example
 
-# Set ownership
-RUN chown -R appuser:appuser /app
+# Create necessary directories
+RUN mkdir -p logs storage && \
+    chown -R appuser:appuser /app
 
 # Switch to the non-root user
 USER appuser
@@ -64,9 +61,7 @@ USER appuser
 # Expose port 8100 (standard port for the API)
 EXPOSE 8100
 
-# Environment variables
-ENV GIN_MODE=release
+# Environment variables (can be overridden in CapRover or docker-compose)
 ENV SERVER_PORT=:8100
-ENV STATIC_DIR=/app/vue/dist
 
-ENTRYPOINT [ "./base-api" ]
+ENTRYPOINT [ "./construct" ]

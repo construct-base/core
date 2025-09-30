@@ -1,9 +1,9 @@
-package api
+package app
 
 import (
-	"base/api/articles"
-	"base/api/categories"
-	"base/api/posts"
+	"base/app/articles"
+	"base/app/categories"
+	"base/app/posts"
 	"base/core/module"
 )
 
@@ -15,7 +15,7 @@ type AppModules struct{}
 func (am *AppModules) GetAppModules(deps module.Dependencies) map[string]module.Module {
 	modules := make(map[string]module.Module)
 
-	// Posts module
+	// App modules - custom system functionality
 	modules["posts"] = posts.Init(deps)
 
 	// Articles module
@@ -23,7 +23,6 @@ func (am *AppModules) GetAppModules(deps module.Dependencies) map[string]module.
 
 	// Categories module
 	modules["categories"] = categories.Init(deps)
-
 	return modules
 }
 

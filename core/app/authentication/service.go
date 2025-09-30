@@ -10,7 +10,7 @@ import (
 	"text/template"
 	"time"
 
-	app "base/api"
+	"base/api"
 	"base/core/app/users"
 	"base/core/email"
 	"base/core/emitter"
@@ -109,7 +109,7 @@ func (s *AuthService) Register(req *RegisterRequest) (*AuthResponse, error) {
 	}
 
 	// Get extended data for JWT token
-	extendData := app.Extend(user.User.Id)
+	extendData := api.Extend(user.User.Id)
 
 	// Generate JWT token
 	token, err := types.GenerateJWT(user.User.Id, extendData)
@@ -164,7 +164,7 @@ func (s *AuthService) Login(req *LoginRequest) (*AuthResponse, error) {
 	}
 
 	// Get extended data for JWT token
-	extendData := app.Extend(user.User.Id)
+	extendData := api.Extend(user.User.Id)
 
 	// Proceed with generating token and response
 	now := time.Now()

@@ -230,9 +230,51 @@ func (app *App) setupMiddleware() {
 
 // setupStaticRoutes configures static file serving
 func (app *App) setupStaticRoutes() {
-	app.router.Static("/static", "./static")
 	app.router.Static("/storage", "./storage")
 	app.router.Static("/docs", "./docs")
+
+	// Serve Vue SPA from public/ directory
+	app.setupSPARoutes()
+}
+
+// setupSPARoutes configures SPA (Single Page Application) serving
+// Serves Vue app from public/ directory
+// - Static assets (JS, CSS, images): served directly
+// - All other routes: serve index.html (SPA routing)
+func (app *App) setupSPARoutes() {
+	spaHandler := func(c *router.Context) error {
+		reqPath := c.Request.URL.Path
+
+		// Try to serve file (for assets like JS, CSS, images)
+		filePath := "./public" + reqPath
+
+		if info, err := os.Stat(filePath); err == nil && !info.IsDir() {
+			// File exists and is not a directory - serve it
+			c.File(filePath)
+			return nil
+		}
+
+		// File doesn't exist or is a directory - serve index.html for SPA routing
+		c.File("./public/index.html")
+		return nil
+	}
+
+	// Root path
+	app.router.GET("/", spaHandler)
+
+	// Set custom 404 handler to serve SPA for unmatched routes
+	app.router.NotFound(func(c *router.Context) error {
+		// Skip API routes - return 404 JSON
+		if strings.HasPrefix(c.Request.URL.Path, "/api") ||
+			strings.HasPrefix(c.Request.URL.Path, "/storage") ||
+			strings.HasPrefix(c.Request.URL.Path, "/docs") ||
+			strings.HasPrefix(c.Request.URL.Path, "/health") {
+			return c.JSON(404, map[string]string{"error": "Not Found"})
+		}
+
+		// For all other paths, serve SPA
+		return spaHandler(c)
+	})
 }
 
 // initWebSocket initializes the WebSocket hub if enabled
@@ -323,14 +365,6 @@ func (app *App) setupRoutes() *App {
 	app.router.GET("/health", func(c *router.Context) error {
 		return c.JSON(200, map[string]any{
 			"status":  "ok",
-			"version": app.config.Version,
-		})
-	})
-
-	// Root endpoint
-	app.router.GET("/", func(c *router.Context) error {
-		return c.JSON(200, map[string]any{
-			"message": "pong",
 			"version": app.config.Version,
 		})
 	})
