@@ -1,9 +1,6 @@
 package api
 
 import (
-	"base/api/articles"
-	"base/api/categories"
-	"base/api/posts"
 	"base/core/module"
 )
 
@@ -11,18 +8,11 @@ import (
 type AppModules struct{}
 
 // GetAppModules returns the list of app modules to initialize
-// This is the only function that needs to be updated when adding new app modules
+// Add your generated modules here
 func (am *AppModules) GetAppModules(deps module.Dependencies) map[string]module.Module {
 	modules := make(map[string]module.Module)
 
-	// Posts module
-	modules["posts"] = posts.Init(deps)
-
-	// Articles module
-	modules["articles"] = articles.Init(deps)
-
-	// Categories module
-	modules["categories"] = categories.Init(deps)
+	// Example: modules["posts"] = posts.Init(deps)
 
 	return modules
 }

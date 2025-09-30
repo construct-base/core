@@ -1,3 +1,69 @@
+#!/bin/bash
+
+# Cleanup script for preparing core as template
+# Removes example structures and prepares for clean generator usage
+# Usage: ./cleanup.sh
+
+set -e
+
+echo "🧹 Cleaning Construct Core Template"
+echo ""
+
+# Remove development artifacts
+echo "📦 Removing development artifacts..."
+find . -name "*.db" -type f -delete 2>/dev/null || true
+find . -name "*.db-shm" -type f -delete 2>/dev/null || true
+find . -name "*.db-wal" -type f -delete 2>/dev/null || true
+find . -name "*.log" -type f -delete 2>/dev/null || true
+find . -name ".DS_Store" -type f -delete 2>/dev/null || true
+rm -f construct-cli construct
+rm -rf dist/* vue/dist vue/node_modules
+if [ -d "logs" ]; then
+    find logs -type f ! -name ".gitkeep" -delete 2>/dev/null || true
+fi
+if [ -d "storage" ]; then
+    find storage -type f ! -name ".gitkeep" -delete 2>/dev/null || true
+fi
+
+# Remove example structures
+echo "🗑️  Removing example structures..."
+rm -rf api/posts api/articles api/categories api/models
+rm -rf vue/structures
+
+# Create empty structures directory
+mkdir -p vue/structures
+
+# Clean up api/init.go
+echo "📝 Cleaning api/init.go..."
+cat > api/init.go << 'EOF'
+package api
+
+import (
+	"base/core/module"
+)
+
+// AppModules implements module.AppModuleProvider interface
+type AppModules struct{}
+
+// GetAppModules returns the list of app modules to initialize
+// Add your generated modules here
+func (am *AppModules) GetAppModules(deps module.Dependencies) map[string]module.Module {
+	modules := make(map[string]module.Module)
+
+	// Example: modules["posts"] = posts.Init(deps)
+
+	return modules
+}
+
+// NewAppModules creates a new AppModules provider
+func NewAppModules() *AppModules {
+	return &AppModules{}
+}
+EOF
+
+# Clean up vue/core/main.ts - remove example routes
+echo "📝 Cleaning vue/core/main.ts..."
+cat > vue/core/main.ts << 'EOF'
 import '@core/assets/css/main.css'
 
 import { createApp } from 'vue'
@@ -47,3 +113,14 @@ app.use(pinia)
 app.use(ui)
 
 app.mount('#app')
+EOF
+
+echo ""
+echo "✅ Cleanup complete!"
+echo ""
+echo "📋 Template is now ready:"
+echo "   • No example structures"
+echo "   • Clean api/init.go"
+echo "   • Clean route configuration"
+echo "   • Ready for generator"
+echo ""
