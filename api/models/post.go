@@ -8,13 +8,14 @@ import (
 
 // Post represents a post entity
 type Post struct {
-	Id        uint           `json:"id" gorm:"primarykey"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at" gorm:"index"`
-	Title     string         `json:"title"`
-	Content   string         `json:"content"`
-	Published bool           `json:"published"`
+	Id         uint           `json:"id" gorm:"primarykey"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at" gorm:"index"`
+	Title      string         `json:"title"`
+	Content    string         `json:"content"`
+	Published  bool           `json:"published"`
+	CategoryId uint           `json:"category_id"`
 }
 
 // TableName returns the table name for the Post model
@@ -34,27 +35,30 @@ func (m *Post) GetModelName() string {
 
 // CreatePostRequest represents the request payload for creating a Post
 type CreatePostRequest struct {
-	Title     string `json:"title"`
-	Content   string `json:"content"`
-	Published bool   `json:"published"`
+	Title      string `json:"title"`
+	Content    string `json:"content"`
+	Published  bool   `json:"published"`
+	CategoryId uint   `json:"category_id"`
 }
 
 // UpdatePostRequest represents the request payload for updating a Post
 type UpdatePostRequest struct {
-	Title     string `json:"title,omitempty"`
-	Content   string `json:"content,omitempty"`
-	Published *bool  `json:"published,omitempty"`
+	Title      string `json:"title,omitempty"`
+	Content    string `json:"content,omitempty"`
+	Published  *bool  `json:"published,omitempty"`
+	CategoryId uint   `json:"category_id,omitempty"`
 }
 
 // PostResponse represents the API response for Post
 type PostResponse struct {
-	Id        uint           `json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at"`
-	Title     string         `json:"title"`
-	Content   string         `json:"content"`
-	Published bool           `json:"published"`
+	Id         uint           `json:"id"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at"`
+	Title      string         `json:"title"`
+	Content    string         `json:"content"`
+	Published  bool           `json:"published"`
+	CategoryId uint           `json:"category_id"`
 }
 
 // PostModelResponse represents a simplified response when this model is part of other entities
@@ -71,13 +75,14 @@ type PostSelectOption struct {
 
 // PostListResponse represents the response for list operations (optimized for performance)
 type PostListResponse struct {
-	Id        uint           `json:"id"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `json:"deleted_at"`
-	Title     string         `json:"title"`
-	Content   string         `json:"content"`
-	Published bool           `json:"published"`
+	Id         uint           `json:"id"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
+	DeletedAt  gorm.DeletedAt `json:"deleted_at"`
+	Title      string         `json:"title"`
+	Content    string         `json:"content"`
+	Published  bool           `json:"published"`
+	CategoryId uint           `json:"category_id"`
 }
 
 // ToResponse converts the model to an API response
@@ -86,13 +91,14 @@ func (m *Post) ToResponse() *PostResponse {
 		return nil
 	}
 	response := &PostResponse{
-		Id:        m.Id,
-		CreatedAt: m.CreatedAt,
-		UpdatedAt: m.UpdatedAt,
-		DeletedAt: m.DeletedAt,
-		Title:     m.Title,
-		Content:   m.Content,
-		Published: m.Published,
+		Id:         m.Id,
+		CreatedAt:  m.CreatedAt,
+		UpdatedAt:  m.UpdatedAt,
+		DeletedAt:  m.DeletedAt,
+		Title:      m.Title,
+		Content:    m.Content,
+		Published:  m.Published,
+		CategoryId: m.CategoryId,
 	}
 
 	return response
@@ -128,13 +134,14 @@ func (m *Post) ToListResponse() *PostListResponse {
 		return nil
 	}
 	return &PostListResponse{
-		Id:        m.Id,
-		CreatedAt: m.CreatedAt,
-		UpdatedAt: m.UpdatedAt,
-		DeletedAt: m.DeletedAt,
-		Title:     m.Title,
-		Content:   m.Content,
-		Published: m.Published,
+		Id:         m.Id,
+		CreatedAt:  m.CreatedAt,
+		UpdatedAt:  m.UpdatedAt,
+		DeletedAt:  m.DeletedAt,
+		Title:      m.Title,
+		Content:    m.Content,
+		Published:  m.Published,
+		CategoryId: m.CategoryId,
 	}
 }
 
