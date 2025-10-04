@@ -1,25 +1,22 @@
 import { ref, computed } from 'vue'
-import { useApi } from './useApi'
-import { isSuccessResponse } from '../types'
+import { useApi } from '~/core/composables/useApi'
+import { isSuccessResponse, isPaginatedResponse } from '../types'
 import type {
   MediaItem,
   MediaListItem,
-  CreateMediaRequest,
   UpdateMediaRequest,
-  ShareMediaRequest,
-  FolderContentsRequest,
   MediaQueryParams,
   FileUploadProgress,
   BreadcrumbItem,
   MediaViewMode
 } from '../types/media'
-import type { PaginatedResponse } from '../types'
+import type { PaginatedResponse, QueryParams } from '../types'
 
 export const useMedia = () => {
   const api = useApi()
 
   // Custom upload method since useApi doesn't provide one
-  const uploadRequest = async <T>(endpoint: string, formData: FormData, options?: {
+  const uploadRequest = async <T>(endpoint: string, formData: FormData, _options?: {
     onUploadProgress?: (event: ProgressEvent) => void
   }): Promise<{ success: boolean; data?: T; error?: string }> => {
     try {
@@ -57,7 +54,7 @@ export const useMedia = () => {
   const hasSelection = computed(() => selectedItems.value.length > 0)
 
   // API Methods
-  const fetchMedia = async (params?: MediaQueryParams): Promise<PaginatedResponse<MediaListItem>> => {
+  const fetchMedia = async (params?: MediaQueryParams): Promise<PaginatedResponse<MediaListItem[]>> => {
     // Convert QueryParams to Record<string, string> for API
     const apiParams: Record<string, string> | undefined = params ?
       Object.fromEntries(
@@ -68,18 +65,8 @@ export const useMedia = () => {
 
     const response = await api.getList<MediaListItem>('/api/media', apiParams)
 
-    if (isSuccessResponse(response) && 'data' in response) {
-      const items = Array.isArray(response.data) ? response.data : []
-      const pagination = 'pagination' in response && response.pagination
-        ? response.pagination
-        : {
-            total: items.length,
-            page: 1,
-            page_size: items.length,
-            total_pages: 1
-          }
-
-      return { data: items, pagination }
+    if (isPaginatedResponse(response)) {
+      return response
     } else {
       throw new Error('error' in response ? response.error : 'Failed to fetch media')
     }
@@ -128,7 +115,7 @@ export const useMedia = () => {
     }
   }
 
-  const getFolderContents = async (folderId?: number, params?: FolderContentsRequest): Promise<PaginatedResponse<MediaListItem>> => {
+  const getFolderContents = async (folderId?: number, params?: QueryParams): Promise<PaginatedResponse<MediaListItem[]>> => {
     const endpoint = folderId ? `/api/media/${folderId}/contents` : '/api/media/root'
 
     // Convert QueryParams to Record<string, string> for API
@@ -141,18 +128,8 @@ export const useMedia = () => {
 
     const response = await api.getList<MediaListItem>(endpoint, apiParams)
 
-    if (isSuccessResponse(response) && 'data' in response) {
-      const items = Array.isArray(response.data) ? response.data : []
-      const pagination = 'pagination' in response && response.pagination
-        ? response.pagination
-        : {
-            total: items.length,
-            page: 1,
-            page_size: items.length,
-            total_pages: 1
-          }
-
-      return { data: items, pagination }
+    if (isPaginatedResponse(response)) {
+      return response
     } else {
       throw new Error('error' in response ? response.error : 'Failed to fetch folder contents')
     }
@@ -282,7 +259,7 @@ export const useMedia = () => {
     }
   }
 
-  const getSharedItems = async (params?: { page?: number; limit?: number }): Promise<PaginatedResponse<MediaListItem>> => {
+  const getSharedItems = async (params?: { page?: number; limit?: number }): Promise<PaginatedResponse<MediaListItem[]>> => {
     // Convert QueryParams to Record<string, string> for API
     const apiParams: Record<string, string> | undefined = params ?
       Object.fromEntries(
@@ -293,18 +270,8 @@ export const useMedia = () => {
 
     const response = await api.getList<MediaListItem>('/api/media/shared', apiParams)
 
-    if (isSuccessResponse(response) && 'data' in response) {
-      const items = Array.isArray(response.data) ? response.data : []
-      const pagination = 'pagination' in response && response.pagination
-        ? response.pagination
-        : {
-            total: items.length,
-            page: 1,
-            page_size: items.length,
-            total_pages: 1
-          }
-
-      return { data: items, pagination }
+    if (isPaginatedResponse(response)) {
+      return response
     } else {
       throw new Error('error' in response ? response.error : 'Failed to fetch shared items')
     }

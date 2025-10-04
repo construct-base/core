@@ -1,8 +1,18 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { computed, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
+import { useAuth } from '~/core/composables/useAuth'
+import DefaultLayout from '~/core/layouts/default.vue'
+import AuthLayout from '~/core/layouts/auth.vue'
 
+const route = useRoute()
 const { initAuth } = useAuth()
+
+// Determine which layout to use based on route meta
+const layout = computed(() => {
+  const layoutName = route.meta.layout || 'default'
+  return layoutName === 'auth' ? AuthLayout : DefaultLayout
+})
 
 // Initialize authentication on app start
 onMounted(async () => {
@@ -16,7 +26,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <Suspense>
-    <RouterView />
-  </Suspense>
+  <component :is="layout">
+    <Suspense>
+      <RouterView />
+    </Suspense>
+  </component>
 </template>

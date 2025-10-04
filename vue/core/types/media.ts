@@ -115,3 +115,8 @@ export interface MediaUploadProgress {
   error?: string
   result?: MediaItem
 }
+
+export interface MediaViewMode {
+  type: 'grid' | 'list'
+  size: 'small' | 'medium' | 'large'
+}

@@ -14,13 +14,15 @@ import (
 	"base/core/storage"
 	_ "base/core/translation"
 	"base/core/websocket"
+	_ "base/docs" // swagger docs
 	"fmt"
 	"net"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv" // swagger embed files
+	"github.com/joho/godotenv"
+	httpSwagger "github.com/swaggo/http-swagger"
 	"gorm.io/gorm"
 )
 
@@ -115,9 +117,7 @@ func (app *App) initLogger() *App {
 	}
 
 	app.logger = log
-	app.logger.Info("🚀 Starting Base Framework",
-		logger.String("version", app.config.Version),
-		logger.String("environment", app.config.Env))
+	app.logger.Info(fmt.Sprintf("🚀 Starting Base Framework version: %s with environment: %s", app.config.Version, app.config.Env))
 
 	return app
 }
@@ -169,7 +169,7 @@ func (app *App) initInfrastructure() *App {
 		app.emailSender = emailSender
 	}
 
-	app.logger.Info("✅ Infrastructure initialized")
+	// Removed verbose infrastructure log - components log individually
 	return app
 }
 
@@ -180,7 +180,7 @@ func (app *App) initRouter() *App {
 	app.setupStaticRoutes()
 	app.initWebSocket()
 
-	app.logger.Info("✅ Router initialized")
+	// Removed verbose router log
 	return app
 }
 
@@ -231,7 +231,6 @@ func (app *App) setupMiddleware() {
 // setupStaticRoutes configures static file serving
 func (app *App) setupStaticRoutes() {
 	app.router.Static("/storage", "./storage")
-	app.router.Static("/docs", "./docs")
 
 	// Serve Vue SPA from public/ directory
 	app.setupSPARoutes()
@@ -354,9 +353,7 @@ func (app *App) initializeModules(modules map[string]module.Module, deps module.
 	initializer := module.NewInitializer(app.logger)
 	initializedModules := initializer.Initialize(modules, deps)
 
-	app.logger.Info("✅ Module initialization complete",
-		logger.Int("total", len(modules)),
-		logger.Int("initialized", len(initializedModules)))
+	app.logger.Info(fmt.Sprintf("✅ Module initialization complete : total: %d, initialized: %d", len(modules), len(initializedModules)))
 }
 
 // setupRoutes sets up basic system routes
@@ -369,9 +366,16 @@ func (app *App) setupRoutes() *App {
 		})
 	})
 
-	// Swagger documentation - serve swag-generated docs
+	// Swagger documentation
+	app.router.GET("/docs/*any", func(c *router.Context) error {
+		// Redirect /docs/ to /docs/index.html
+		if c.Request.URL.Path == "/docs/" || c.Request.URL.Path == "/docs" {
+			return c.Redirect(302, "/docs/index.html")
+		}
+		httpSwagger.Handler()(c.Writer, c.Request)
+		return nil
+	})
 	app.router.GET("/swagger/*any", func(c *router.Context) error {
-		// Redirect to docs index.html for swagger UI
 		return c.Redirect(302, "/docs/index.html")
 	})
 
@@ -416,8 +420,7 @@ func (app *App) run() error {
 	app.running = true
 	port := app.config.ServerPort
 
-	app.logger.Info("🌐 Server starting",
-		logger.String("port", port))
+	app.logger.Info(fmt.Sprintf("🌐 Server starting  on port %s", port))
 
 	err := app.router.Run(port)
 	if err != nil {

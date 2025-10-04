@@ -21,10 +21,8 @@ export interface Pagination {
 }
 
 export interface PaginatedResponse<T = unknown> {
-  success: boolean
   data: T
   pagination: Pagination
-  message?: string
 }
 
 // Request/Response wrappers
@@ -38,6 +36,10 @@ export function isSuccessResponse<T>(response: ApiResponse<T>): response is Succ
 
 export function isErrorResponse(response: ApiResponse): response is ErrorResponse {
   return response.success === false
+}
+
+export function isPaginatedResponse<T>(response: ApiListResponse<T>): response is PaginatedResponse<T[]> {
+  return 'pagination' in response && 'data' in response
 }
 
 // Common query parameters

@@ -1,5 +1,3 @@
-import { ref, computed } from 'vue'
-import { apiClient } from '@core/api/client'
 import type { User, LoginRequest, RegisterRequest } from '@/types'
 import { isSuccessResponse, isErrorResponse } from '@/types'
 
@@ -10,6 +8,8 @@ const loading = ref(false)
 const error = ref<string | null>(null)
 
 export function useAuth() {
+  const authApi = useAuthApi()
+
   // Getters
   const isAuthenticated = computed(() => !!user.value && !!token.value)
   const isGuest = computed(() => !isAuthenticated.value)
@@ -35,7 +35,6 @@ export function useAuth() {
       if (storedToken && storedUser) {
         token.value = storedToken
         user.value = JSON.parse(storedUser)
-        apiClient.setToken(storedToken)
         return true
       }
     } catch (error) {
@@ -49,7 +48,6 @@ export function useAuth() {
   const clearAuth = () => {
     user.value = null
     token.value = null
-    apiClient.clearToken()
     localStorage.removeItem('auth_token')
     localStorage.removeItem('auth_user')
   }
@@ -60,15 +58,12 @@ export function useAuth() {
     error.value = null
 
     try {
-      const response = await apiClient.login(credentials)
+      const response = await authApi.login(credentials)
 
       if (isSuccessResponse(response) && response.data) {
         // Update state
         user.value = response.data.user
         token.value = response.data.token
-
-        // Ensure API client has the token (it should already be set during login)
-        apiClient.setToken(response.data.token)
 
         // Persist to localStorage
         saveAuthToStorage(response.data.user, response.data.token)
@@ -94,7 +89,7 @@ export function useAuth() {
     error.value = null
 
     try {
-      const response = await apiClient.register(registrationData)
+      const response = await authApi.register(registrationData)
 
       if (isSuccessResponse(response) && response.data) {
         // Update state
@@ -127,7 +122,7 @@ export function useAuth() {
     loading.value = true
 
     try {
-      await apiClient.logout()
+      await authApi.logout()
       console.log('✅ User logged out successfully')
     } catch (err) {
       console.warn('⚠️ Logout API call failed:', err)
@@ -144,7 +139,7 @@ export function useAuth() {
       // Try to load from localStorage first
       if (loadAuthFromStorage()) {
         // Validate the token by fetching current user
-        const response = await apiClient.getCurrentUser()
+        const response = await authApi.getCurrentUser()
 
         if (isSuccessResponse(response) && response.data) {
           user.value = response.data

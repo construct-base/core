@@ -26,7 +26,7 @@
             </div>
           </div>
 
-          <UFormGroup label="Email address" required>
+          <UFormField label="Email address" required>
             <UInput
               v-model="email"
               type="email"
@@ -36,7 +36,7 @@
               :disabled="loading"
               autofocus
             />
-          </UFormGroup>
+          </UFormField>
 
           <UButton
             type="submit"
@@ -124,7 +124,7 @@
 
 <script setup lang="ts">
 import { ref, onUnmounted } from 'vue'
-import { useApi } from '@/composables/useApi'
+import { useApi } from '~/core/composables/useApi'
 
 const api = useApi()
 

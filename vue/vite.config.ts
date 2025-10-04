@@ -2,6 +2,8 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import ui from '@nuxt/ui/vite'
 import { resolve } from 'path'
+import AutoImport from 'unplugin-auto-import/vite'
+import Components from 'unplugin-vue-components/vite'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -14,12 +16,32 @@ export default defineConfig({
           neutral: 'slate'
         }
       }
+    }),
+    AutoImport({
+      imports: [
+        'vue',
+        'vue-router',
+        'pinia'
+      ],
+      dirs: [
+        './core/composables/**',
+        './app/*/composables/**'
+      ],
+      dts: 'auto-imports.d.ts',
+      vueTemplate: true
+    }),
+    Components({
+      dirs: [
+        './core/components',
+        './app/*/components'
+      ],
+      dts: 'components.d.ts'
     })
   ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'view'),
-      '@core': resolve(__dirname, 'core'),
+      '~': resolve(__dirname, '.'),
+      '@': resolve(__dirname, 'core'),
     }
   },
   build: {

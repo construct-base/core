@@ -27,7 +27,7 @@
           </div>
 
           <div class="grid grid-cols-2 gap-4">
-            <UFormGroup label="First Name" required>
+            <UFormField label="First Name" required>
               <UInput
                 v-model="form.first_name"
                 type="text"
@@ -36,9 +36,9 @@
                 required
                 :disabled="loading"
               />
-            </UFormGroup>
+            </UFormField>
 
-            <UFormGroup label="Last Name" required>
+            <UFormField label="Last Name" required>
               <UInput
                 v-model="form.last_name"
                 type="text"
@@ -47,10 +47,10 @@
                 required
                 :disabled="loading"
               />
-            </UFormGroup>
+            </UFormField>
           </div>
 
-          <UFormGroup label="Username" required>
+          <UFormField label="Username" required>
             <UInput
               v-model="form.username"
               type="text"
@@ -59,9 +59,9 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Email address" required>
+          <UFormField label="Email address" required>
             <UInput
               v-model="form.email"
               type="email"
@@ -70,9 +70,9 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Phone number">
+          <UFormField label="Phone number">
             <UInput
               v-model="form.phone"
               type="tel"
@@ -80,9 +80,9 @@
               autocomplete="tel"
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Password" required>
+          <UFormField label="Password" required>
             <UInput
               v-model="form.password"
               type="password"
@@ -91,9 +91,9 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Confirm Password" required>
+          <UFormField label="Confirm Password" required>
             <UInput
               v-model="confirmPassword"
               type="password"
@@ -102,7 +102,7 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
           <div class="flex items-center">
             <UCheckbox
@@ -153,7 +153,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '~/core/composables/useAuth'
 import { useRouter } from 'vue-router'
 
 const { register, error, loading, isAuthenticated } = useAuth()

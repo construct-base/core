@@ -1,4 +1,5 @@
-import { useApi } from './useApi'
+import { useApi } from '~/core/composables/useApi'
+import { isPaginatedResponse, isSuccessResponse } from '../types'
 import type { User, UserCreateRequest, UserUpdateRequest, QueryParams } from '../types'
 
 /**
@@ -11,60 +12,58 @@ export function useUsers() {
 
   // API operations
   const fetchUsers = async (params?: QueryParams) => {
-    const response = await api.getList<User>('/api/users', params)
+    // Convert QueryParams to Record<string, string> for API
+    const apiParams: Record<string, string> | undefined = params ?
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => [key, String(value)])
+      ) : undefined
 
-    if (response.success && 'data' in response) {
-      const users = Array.isArray(response.data) ? response.data : []
-      const pagination = 'pagination' in response && response.pagination
-        ? response.pagination
-        : {
-            total: users.length,
-            page: 1,
-            page_size: users.length,
-            total_pages: 1
-          }
+    const response = await api.getList<User>('/api/users', apiParams)
 
-      return { users, pagination }
+    if (isPaginatedResponse(response)) {
+      return { users: response.data, pagination: response.pagination }
     } else {
-      throw new Error(response.error || 'Failed to fetch users')
+      throw new Error('error' in response ? response.error : 'Failed to fetch users')
     }
   }
 
   const fetchUser = async (id: number): Promise<User> => {
     const response = await api.get<User>(`/api/users/${id}`)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return response.data
     } else {
-      throw new Error(response.error || 'Failed to fetch user')
+      throw new Error('error' in response ? response.error : 'Failed to fetch user')
     }
   }
 
   const createUser = async (userData: UserCreateRequest): Promise<User> => {
     const response = await api.post<User>('/api/users', userData)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return response.data
     } else {
-      throw new Error(response.error || 'Failed to create user')
+      throw new Error('error' in response ? response.error : 'Failed to create user')
     }
   }
 
   const updateUser = async (id: number, userData: UserUpdateRequest): Promise<User> => {
     const response = await api.put<User>(`/api/users/${id}`, userData)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return response.data
     } else {
-      throw new Error(response.error || 'Failed to update user')
+      throw new Error('error' in response ? response.error : 'Failed to update user')
     }
   }
 
   const deleteUser = async (id: number): Promise<void> => {
     const response = await api.delete<void>(`/api/users/${id}`)
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to delete user')
+    if (!isSuccessResponse(response)) {
+      throw new Error('error' in response ? response.error : 'Failed to delete user')
     }
   }
 

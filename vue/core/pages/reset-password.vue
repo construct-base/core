@@ -26,7 +26,7 @@
             </div>
           </div>
 
-          <UFormGroup label="New Password" required>
+          <UFormField label="New Password" required>
             <UInput
               v-model="password"
               type="password"
@@ -41,9 +41,9 @@
                 Password should be at least 8 characters long
               </div>
             </template>
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Confirm Password" required>
+          <UFormField label="Confirm Password" required>
             <UInput
               v-model="confirmPassword"
               type="password"
@@ -52,7 +52,7 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
           <!-- Password strength indicator -->
           <div v-if="password" class="space-y-2">
@@ -118,7 +118,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useApi } from '@/composables/useApi'
+import { useApi } from '~/core/composables/useApi'
 
 const route = useRoute()
 const router = useRouter()

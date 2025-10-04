@@ -74,34 +74,18 @@ func NewLogger(config Config) (Logger, error) {
 	// Create logger with file and console output
 	encoder := zapcore.NewJSONEncoder(cfg.EncoderConfig)
 
-	// Custom console encoder config
+	// Custom console encoder config - clean minimal format
 	consoleConfig := zap.NewDevelopmentEncoderConfig()
-	consoleConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	consoleConfig.EncodeTime = func(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-		// Add blue color to timestamp
-		enc.AppendString(fmt.Sprintf("\033[36m%s\033[0m", t.Format("2006-01-02 15:04:05")))
-	}
-	consoleConfig.EncodeCaller = func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
-		// Add gray/dim color to file path
-		enc.AppendString(fmt.Sprintf("\033[2m%s\033[0m", caller.TrimmedPath()))
-	}
+
+	// Disable timestamp, level, and caller for console output (only show message)
+	consoleConfig.EncodeTime = zapcore.TimeEncoderOfLayout("") // No timestamp
+	consoleConfig.EncodeCaller = nil                            // No file path
 	consoleConfig.EncodeLevel = func(l zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
-		switch l {
-		case zapcore.InfoLevel:
-			enc.AppendString("\033[34mℹ️  INFO \033[0m") // Blue
-		case zapcore.WarnLevel:
-			enc.AppendString("\033[33m⚠️  WARN \033[0m") // Yellow
-		case zapcore.ErrorLevel:
-			enc.AppendString("\033[31m❌ ERROR\033[0m") // Red
-		case zapcore.DebugLevel:
-			enc.AppendString("\033[35m🔍 DEBUG\033[0m") // Purple
-		case zapcore.FatalLevel:
-			enc.AppendString("\033[31m\033[1m💀 FATAL\033[0m") // Bold Red
-		default:
-			enc.AppendString(l.String())
-		}
+		// Don't encode level - we'll include it in the message if needed
 	}
-	consoleConfig.ConsoleSeparator = "  "
+	consoleConfig.ConsoleSeparator = ""
+
+	// Use console encoder for cleaner output
 	consoleEncoder := zapcore.NewConsoleEncoder(consoleConfig)
 
 	// Create multi-writer core
@@ -117,7 +101,8 @@ func NewLogger(config Config) (Logger, error) {
 			level,
 		),
 	)
-	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+	// Don't add caller info for cleaner console output
+	logger := zap.New(core, zap.AddCallerSkip(1))
 
 	return &ZapLogger{logger: logger}, nil
 }

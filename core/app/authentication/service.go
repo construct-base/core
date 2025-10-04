@@ -10,7 +10,6 @@ import (
 	"text/template"
 	"time"
 
-	"base/api"
 	"base/core/app/users"
 	"base/core/email"
 	"base/core/emitter"
@@ -108,11 +107,8 @@ func (s *AuthService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
-	// Get extended data for JWT token
-	extendData := api.Extend(user.User.Id)
-
 	// Generate JWT token
-	token, err := types.GenerateJWT(user.User.Id, extendData)
+	token, err := types.GenerateJWT(user.User.Id, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -146,7 +142,6 @@ func (s *AuthService) Register(req *RegisterRequest) (*AuthResponse, error) {
 		UserResponse: *userResponse,
 		AccessToken:  token,
 		Exp:          now.Add(24 * time.Hour).Unix(),
-		Extend:       extendData,
 	}, nil
 }
 
@@ -163,12 +158,9 @@ func (s *AuthService) Login(req *LoginRequest) (*AuthResponse, error) {
 		return nil, errors.New("invalid credentials")
 	}
 
-	// Get extended data for JWT token
-	extendData := api.Extend(user.User.Id)
-
 	// Proceed with generating token and response
 	now := time.Now()
-	token, err := types.GenerateJWT(user.User.Id, extendData)
+	token, err := types.GenerateJWT(user.User.Id, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate token: %w", err)
 	}
@@ -183,7 +175,6 @@ func (s *AuthService) Login(req *LoginRequest) (*AuthResponse, error) {
 		UserResponse: *userResponse,
 		AccessToken:  token,
 		Exp:          now.Add(24 * time.Hour).Unix(),
-		Extend:       extendData,
 	}
 
 	// Prepare the login event

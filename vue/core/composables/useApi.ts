@@ -1,5 +1,15 @@
 import { ref, computed } from 'vue'
-import type { ApiResponse, ApiListResponse } from '../types'
+import type { ApiResponse, ApiListResponse } from '@/types'
+
+/**
+ * App-level API composable with Bearer token authentication
+ * Extends useFetch with Bearer token for authenticated endpoints
+ * Use this in app modules for authenticated API calls
+ *
+ * @example
+ * const { get, post } = useApi()
+ * const response = await post('/api/posts', { title: 'Hello' })
+ */
 
 interface UseApiOptions {
   baseURL?: string
@@ -17,14 +27,15 @@ export function useApi(options: UseApiOptions = {}) {
   const error = ref<string | null>(null)
 
   const baseURL = computed(() => {
-    // In development, use relative URLs to leverage Vite proxy
-    // In production, use the full API URL
     if (import.meta.env.DEV) {
       return options.baseURL || ''
     }
     return options.baseURL || import.meta.env.VITE_API_URL || 'http://localhost:8100'
   })
 
+  /**
+   * Get headers with both API key and Bearer token
+   */
   const getAuthHeaders = (): Record<string, string> => {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -32,7 +43,7 @@ export function useApi(options: UseApiOptions = {}) {
       'X-Api-Key': 'api'
     }
 
-    // Add Bearer token if user is authenticated
+    // Add Bearer token for authenticated requests
     const token = localStorage.getItem('auth_token')
     if (token) {
       headers.Authorization = `Bearer ${token}`

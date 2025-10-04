@@ -1,5 +1,5 @@
-import { useApi } from './useApi'
-import { isSuccessResponse } from '../types'
+import { isPaginatedResponse, isSuccessResponse } from '@/types'
+import { useApi } from '~/core/composables/useApi'
 import type { Permission, QueryParams } from '../types'
 
 /**
@@ -22,18 +22,8 @@ export function usePermissions() {
 
     const response = await api.getList<Permission>('/api/authorization/permissions', apiParams)
 
-    if (response.success && 'data' in response) {
-      const permissions = Array.isArray(response.data) ? response.data : []
-      const pagination = 'pagination' in response && response.pagination
-        ? response.pagination
-        : {
-            total: permissions.length,
-            page: 1,
-            page_size: permissions.length,
-            total_pages: 1
-          }
-
-      return { permissions, pagination }
+    if (isPaginatedResponse(response)) {
+      return { permissions: response.data, pagination: response.pagination }
     } else {
       throw new Error('error' in response ? response.error : 'Failed to fetch permissions')
     }
@@ -72,7 +62,7 @@ export function usePermissions() {
   const deletePermission = async (id: number): Promise<void> => {
     const response = await api.delete<void>(`/api/authorization/permissions/${id}`)
 
-    if (!response.success) {
+    if (!isSuccessResponse(response)) {
       throw new Error('error' in response ? response.error : 'Failed to delete permission')
     }
   }

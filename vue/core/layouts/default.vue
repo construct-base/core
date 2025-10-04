@@ -3,7 +3,10 @@ import { computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStorage } from '@vueuse/core'
 import type { NavigationMenuItem } from '@nuxt/ui'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '~/core/composables/useAuth'
+import TeamsMenu from '~/core/components/TeamsMenu.vue'
+import UserMenu from '~/core/components/UserMenu.vue'
+import NotificationsSlideover from '~/core/components/NotificationsSlideover.vue'
 
 const toast = useToast()
 const route = useRoute()

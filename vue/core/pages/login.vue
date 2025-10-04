@@ -26,7 +26,7 @@
             </div>
           </div>
 
-          <UFormGroup label="Email address" required>
+          <UFormField label="Email address" required>
             <UInput
               v-model="form.email"
               type="email"
@@ -35,9 +35,9 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
-          <UFormGroup label="Password" required>
+          <UFormField label="Password" required>
             <UInput
               v-model="form.password"
               type="password"
@@ -46,7 +46,7 @@
               required
               :disabled="loading"
             />
-          </UFormGroup>
+          </UFormField>
 
           <div class="flex items-center justify-between">
             <UCheckbox
@@ -122,7 +122,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
-import { useAuth } from '@/composables/useAuth'
+import { useAuth } from '~/core/composables/useAuth'
 import { useRouter } from 'vue-router'
 
 const { login, error, loading, isAuthenticated } = useAuth()
@@ -170,7 +170,7 @@ const handleLogin = async () => {
 // Test API connection on mount
 const checkAPIConnection = async () => {
   try {
-    const response = await fetch('/api/health')
+    const response = await fetch('/health')
     if (response.ok) {
       apiStatus.value = {
         connected: true,

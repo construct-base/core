@@ -5,6 +5,7 @@ import (
 	"base/core/storage"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -27,6 +28,19 @@ type User struct {
 
 func (User) TableName() string {
 	return "users"
+}
+
+// BeforeCreate hook to hash password before creating user
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	// Only hash if password is not empty and not already hashed
+	if u.Password != "" && len(u.Password) < 60 {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(u.Password), bcrypt.DefaultCost)
+		if err != nil {
+			return err
+		}
+		u.Password = string(hashedPassword)
+	}
+	return nil
 }
 
 type CreateUserRequest struct {

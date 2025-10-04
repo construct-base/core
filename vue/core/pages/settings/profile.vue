@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
+import { useAuthApi } from '@/composables/useAuthApi'
 import type { UserUpdateRequest, UserUpdatePasswordRequest } from '@/types'
-import { apiClient } from '@core/api/client'
 import { isSuccessResponse, isErrorResponse } from '@/types'
+
+const authApi = useAuthApi()
 
 const { user, isAuthenticated } = useAuth()
 const toast = useToast()
@@ -127,7 +129,7 @@ const updateProfile = async () => {
   profileLoading.value = true
 
   try {
-    const response = await apiClient.updateUser(user.value.id, profileForm.value)
+    const response = await authApi.updateUser(user.value.id, profileForm.value)
 
     if (isSuccessResponse(response) && response.data) {
       // Update the user data in auth store
@@ -167,7 +169,7 @@ const updatePassword = async () => {
   passwordLoading.value = true
 
   try {
-    const response = await apiClient.updateUserPassword(user.value.id, {
+    const response = await authApi.updateUserPassword(user.value.id, {
       password: passwordForm.value.new_password
     })
 
@@ -241,7 +243,7 @@ const handleAvatarUpload = async (files: FileList | null) => {
     const formData = new FormData()
     formData.append('avatar', file)
 
-    const response = await apiClient.uploadUserAvatar(user.value.id, formData)
+    const response = await authApi.uploadUserAvatar(user.value.id, formData)
 
     if (isSuccessResponse(response) && response.data) {
       // Update user avatar

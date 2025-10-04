@@ -1,4 +1,5 @@
-import { useApi } from './useApi'
+import { isErrorResponse, isPaginatedResponse, isSuccessResponse } from '@/types'
+import { useApi } from '~/core/composables/useApi'
 import type { Role, Permission, QueryParams } from '../types'
 
 /**
@@ -11,70 +12,68 @@ export function useRoles() {
 
   // API operations
   const fetchRoles = async (params?: QueryParams) => {
-    const response = await api.getList<Role>('/api/authorization/roles', params)
+    // Convert QueryParams to Record<string, string> for API
+    const apiParams: Record<string, string> | undefined = params ?
+      Object.fromEntries(
+        Object.entries(params)
+          .filter(([_, value]) => value !== undefined)
+          .map(([key, value]) => [key, String(value)])
+      ) : undefined
 
-    if (response.success && 'data' in response) {
-      const roles = Array.isArray(response.data) ? response.data : []
-      const pagination = 'pagination' in response && response.pagination
-        ? response.pagination
-        : {
-            total: roles.length,
-            page: 1,
-            page_size: roles.length,
-            total_pages: 1
-          }
+    const response = await api.getList<Role>('/api/authorization/roles', apiParams)
 
-      return { roles, pagination }
+    if (isPaginatedResponse(response)) {
+      return { roles: response.data, pagination: response.pagination }
     } else {
-      throw new Error(response.error || 'Failed to fetch roles')
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to fetch roles') : 'Failed to fetch roles')
     }
   }
 
   const fetchRole = async (id: number): Promise<Role> => {
     const response = await api.get<Role>(`/api/authorization/roles/${id}`)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return response.data
     } else {
-      throw new Error(response.error || 'Failed to fetch role')
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to fetch role') : 'Failed to fetch role')
     }
   }
 
   const createRole = async (roleData: Omit<Role, 'id' | 'created_at' | 'updated_at'>): Promise<Role> => {
     const response = await api.post<Role>('/api/authorization/roles', roleData)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return response.data
     } else {
-      throw new Error(response.error || 'Failed to create role')
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to create role') : 'Failed to create role')
     }
   }
 
   const updateRole = async (id: number, roleData: Partial<Role>): Promise<Role> => {
     const response = await api.put<Role>(`/api/authorization/roles/${id}`, roleData)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return response.data
     } else {
-      throw new Error(response.error || 'Failed to update role')
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to update role') : 'Failed to update role')
     }
   }
 
   const deleteRole = async (id: number): Promise<void> => {
     const response = await api.delete<void>(`/api/authorization/roles/${id}`)
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to delete role')
+    if (!isSuccessResponse(response)) {
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to delete role') : 'Failed to delete role')
     }
   }
 
   const fetchRolePermissions = async (roleId: number): Promise<Permission[]> => {
     const response = await api.get<Permission[]>(`/api/authorization/roles/${roleId}/permissions`)
 
-    if (response.success && response.data) {
+    if (isSuccessResponse(response) && response.data) {
       return Array.isArray(response.data) ? response.data : []
     } else {
-      throw new Error(response.error || 'Failed to fetch role permissions')
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to fetch role permissions') : 'Failed to fetch role permissions')
     }
   }
 
@@ -84,19 +83,23 @@ export function useRoles() {
       permission_ids: permissionIds
     })
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to assign permissions')
+    if (!isSuccessResponse(response)) {
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to assign permissions') : 'Failed to assign permissions')
     }
   }
 
   const removePermissions = async (roleId: number, permissionIds: number[]): Promise<void> => {
-    const response = await api.delete<void>(`/api/authorization/roles/${roleId}/permissions`, {
-      permission_ids: permissionIds
+    // The backend expects individual permission IDs in the URL path
+    // DELETE /api/authorization/roles/:id/permissions/:permissionId
+    const promises = permissionIds.map(async (permissionId) => {
+      const response = await api.delete<void>(`/api/authorization/roles/${roleId}/permissions/${permissionId}`)
+      
+      if (!isSuccessResponse(response)) {
+        throw new Error(isErrorResponse(response) ? (response.error || `Failed to remove permission ${permissionId}`) : `Failed to remove permission ${permissionId}`)
+      }
     })
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to remove permissions')
-    }
+    await Promise.all(promises)
   }
 
   const syncPermissions = async (roleId: number, permissionIds: number[]): Promise<void> => {
@@ -104,8 +107,8 @@ export function useRoles() {
       permission_ids: permissionIds
     })
 
-    if (!response.success) {
-      throw new Error(response.error || 'Failed to sync permissions')
+    if (!isSuccessResponse(response)) {
+      throw new Error(isErrorResponse(response) ? (response.error || 'Failed to sync permissions') : 'Failed to sync permissions')
     }
   }
 

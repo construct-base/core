@@ -392,7 +392,7 @@ func parseMiddlewareConfig(config *Config) {
 	config.Middleware = MiddlewareConfig{
 		// Global middleware settings
 		APIKeyEnabled:     parseBoolWithDefault("MIDDLEWARE_API_KEY_ENABLED", true),
-		APIKeySkipPaths:   parsePathList("MIDDLEWARE_API_KEY_SKIP_PATHS", "/health,/,/docs,/swagger"),
+		APIKeySkipPaths:   parsePathList("MIDDLEWARE_API_KEY_SKIP_PATHS", "/health,/,/docs/*,/swagger/*"),
 		AuthEnabled:       parseBoolWithDefault("MIDDLEWARE_AUTH_ENABLED", false),
 		AuthSkipPaths:     parsePathList("MIDDLEWARE_AUTH_SKIP_PATHS", "/api/auth/login,/api/auth/register,/api/auth/forgot-password"),
 		RateLimitEnabled:  parseBoolWithDefault("MIDDLEWARE_RATE_LIMIT_ENABLED", true),
